@@ -522,8 +522,7 @@ body{overscroll-behavior-y:none}
 .calgrid button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .calgrid button.today:not([aria-pressed="true"]){color:var(--accent);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
 .calgrid button.has::after{content:"";position:absolute;bottom:6px;width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.5}
-.timechip{position:relative;overflow:hidden}
-.timechip input{position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:16px}
+.cmp-times{display:flex;gap:8px;flex-wrap:wrap}.cmp-times .chip{flex:none}.tcustom{display:inline-flex;align-items:center;gap:6px}.tcustom input{font:inherit;font-size:16px;border:0;background:transparent;color:inherit;padding:0;min-width:84px}
 .sheet-wrap{z-index:60}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes rise{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
@@ -2393,14 +2392,14 @@ function closeComposer() {
 function composerChips() {
   const t = todayISO(), dl = ui.day === t ? 'Сегодня' : (() => { const d = parseISO(ui.day); return d.getDate() + ' ' + MONTHS_G[d.getMonth()]; })();
   const ch = (k, l) => '<button type="button" class="chip" data-w="' + k + '" aria-pressed="' + (cmp.when === k) + '">' + l + '</button>';
-  return ch('day', dl) + ch('tomorrow', 'Завтра') + '<label class="chip timechip" aria-pressed="' + !!cmp.time + '">' + ic('clock', 14) + ' ' + (cmp.time || 'Время') + '<input type="time" id="cmp-time" value="' + cmp.time + '" aria-label="Время задачи"></label>' + (cmp.time ? '<button type="button" class="chip" data-bell="1" aria-pressed="' + cmp.bell + '">' + ic('bell', 14) + ' Напомнить</button>' : '') + ch('daily', 'Каждый день') + (P().flags.star ? '<button type="button" class="chip" data-star="1" aria-pressed="' + cmp.star + '">' + ic('star', 14) + ' Важное</button>' : '') + '<button type="button" class="chip" data-more="1">Ещё…</button>';
+  return ch('day', dl) + ch('tomorrow', 'Завтра') + '<button type="button" class="chip" data-time="1" aria-pressed="' + !!cmp.time + '">' + ic('clock', 14) + ' ' + (cmp.time || 'Время') + '</button>' + (cmp.time ? '<button type="button" class="chip" data-bell="1" aria-pressed="' + cmp.bell + '">' + ic('bell', 14) + ' Напомнить</button>' : '') + ch('daily', 'Каждый день') + (P().flags.star ? '<button type="button" class="chip" data-star="1" aria-pressed="' + cmp.star + '">' + ic('star', 14) + ' Важное</button>' : '') + '<button type="button" class="chip" data-more="1">Ещё…</button>';
 }
 function openComposer() {
   if (cmp.el || !S) return;
   cmp.when = 'day'; cmp.star = false; cmp.n = 0; cmp.time = ''; cmp.bell = false;
   const draft = cmp.draft && Date.now() - cmp.draft.at < 10 * 60000 ? cmp.draft.v : ''; cmp.draft = null;
   const w = document.createElement('div'); w.id = 'cmp';
-  w.innerHTML = '<div class="cmp-scrim"></div><form class="cmp-bar" autocomplete="off" novalidate><div class="cmp-grab"></div><div class="cmp-chips">' + composerChips() + '</div><div class="cmp-row"><input id="cmp-in" enterkeyhint="send" autocapitalize="sentences" autocorrect="on" placeholder="Что нужно сделать?" aria-label="Новая задача"><button class="cmp-go" type="submit" aria-label="Добавить" disabled>' + ic('up', 22) + '</button></div><div class="cmp-done" aria-live="polite"></div></form>';
+  w.innerHTML = '<div class="cmp-scrim"></div><form class="cmp-bar" autocomplete="off" novalidate><div class="cmp-grab"></div><div class="cmp-chips">' + composerChips() + '</div><div class="cmp-times" hidden></div><div class="cmp-row"><input id="cmp-in" enterkeyhint="send" autocapitalize="sentences" autocorrect="on" placeholder="Что нужно сделать?" aria-label="Новая задача"><button class="cmp-go" type="submit" aria-label="Добавить" disabled>' + ic('up', 22) + '</button></div><div class="cmp-done" aria-live="polite"></div></form>';
   document.body.appendChild(w); cmp.el = w;
   const inp = w.querySelector('#cmp-in'), go = w.querySelector('.cmp-go'), chips = w.querySelector('.cmp-chips'), bar = w.querySelector('.cmp-bar'), done = w.querySelector('.cmp-done');
   if (draft) { inp.value = draft; go.disabled = false; }
@@ -2421,10 +2420,20 @@ function openComposer() {
   inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } });
   bar.addEventListener('submit', ev => { ev.preventDefault(); submit(); });
   go.addEventListener('pointerdown', ev => ev.preventDefault()); // не теряем фокус и клавиатуру
-  chips.addEventListener('pointerdown', ev => { if (!ev.target.closest('.timechip')) ev.preventDefault(); });
-  chips.addEventListener('change', ev => { if (ev.target.id === 'cmp-time') { cmp.time = ev.target.value || ''; if (!cmp.time) cmp.bell = false; chips.innerHTML = composerChips(); inp.focus(); } });
+  chips.addEventListener('pointerdown', ev => ev.preventDefault());
+  const times = w.querySelector('.cmp-times'); cmp.timeOpen = false;
+  const nextHour = () => { const d = new Date(Date.now() + 60 * 60000); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const paintTimes = () => {
+    times.hidden = !cmp.timeOpen; if (!cmp.timeOpen) return;
+    const P2 = [['Через час', nextHour()], ['Утром', '09:00'], ['Днём', '13:00'], ['Вечером', '19:00']];
+    times.innerHTML = P2.map(x => '<button type="button" class="chip" data-tp="' + x[1] + '" aria-pressed="' + (cmp.time === x[1]) + '">' + x[0] + ' · ' + x[1] + '</button>').join('') + '<label class="chip tcustom">Своё <input type="time" id="cmp-time" value="' + cmp.time + '"></label>' + (cmp.time ? '<button type="button" class="chip" data-tp="">Убрать</button>' : '');
+  };
+  times.addEventListener('pointerdown', ev => { if (!ev.target.closest('.tcustom')) ev.preventDefault(); });
+  times.addEventListener('click', ev => { const b = ev.target.closest('[data-tp]'); if (!b) return; cmp.time = b.dataset.tp; if (!cmp.time) cmp.bell = false; cmp.timeOpen = false; paintTimes(); chips.innerHTML = composerChips(); inp.focus(); });
+  times.addEventListener('change', ev => { if (ev.target.id !== 'cmp-time') return; cmp.time = ev.target.value || ''; if (!cmp.time) cmp.bell = false; chips.innerHTML = composerChips(); });
   chips.addEventListener('click', ev => {
     const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.time) { cmp.timeOpen = !cmp.timeOpen; paintTimes(); chips.innerHTML = composerChips(); inp.focus(); return; }
     if (b.dataset.w) cmp.when = b.dataset.w; else if (b.dataset.star) cmp.star = !cmp.star;
     else if (b.dataset.bell) { cmp.bell = !cmp.bell; if (cmp.bell) askNotif(); }
     else if (b.dataset.more) { const title = inp.value.trim(), kind = cmp.when === 'daily' ? 'daily' : 'once', date = cmp.when === 'tomorrow' ? addDays(ui.day, 1) : ui.day, star = cmp.star, time = cmp.time, rem = cmp.time && cmp.bell ? 0 : null; closeComposer(); setTimeout(() => taskSheet(null, { title, kind, date, star, time, rem }), 30); return; }
@@ -2440,12 +2449,14 @@ function openComposer() {
 /* тяните вниз от верха экрана: новая задача */
 const pullEl = document.createElement('div'); pullEl.id = 'pull'; pullEl.innerHTML = '<b></b>'; document.body.appendChild(pullEl);
 let PL = null;
+const PULL_TH = 54;
 const docBottom = () => Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 document.addEventListener('touchstart', e => {
   PL = null;
   if (!S || e.touches.length !== 1 || document.querySelector('.sheet-wrap,#cmp') || (G && G.lock)) return;
   if (e.target.closest && e.target.closest('input,textarea,select,.weekpager,.calgrid')) return;
-  PL = { x: e.touches[0].clientX, y0: e.touches[0].clientY, o: null, edge: null, d: 0, hit: false, v: document.querySelector('.view') };
+  const aT = window.scrollY <= 0, aB = window.scrollY + window.innerHeight >= docBottom() - 1;
+  PL = { x: e.touches[0].clientX, y0: e.touches[0].clientY, o: aT || aB ? e.touches[0].clientY : null, edge: null, d: 0, hit: false, v: document.querySelector('.view') };
 }, { passive: true });
 document.addEventListener('touchmove', e => {
   if (!PL) return;
@@ -2461,10 +2472,11 @@ document.addEventListener('touchmove', e => {
   let d = PL.edge === 'top' ? y - PL.o : PL.o - y;
   if (d <= 0) { d = 0; PL.o = y; }
   PL.d = d;
-  const off = rband(d, 84) * 0.55 * (PL.edge === 'top' ? 1 : -1);
+  const now = performance.now(); if (PL.lt) { const v = (y - PL.ly) / Math.max(1, now - PL.lt); PL.vy = (PL.vy || 0) * 0.6 + v * 0.4; } PL.lt = now; PL.ly = y;
+  const off = rband(d, PULL_TH) * 0.8 * (PL.edge === 'top' ? 1 : -1);
   if (PL.v) PL.v.style.transform = 'translate3d(0,' + off + 'px,0)';
   if (PL.edge === 'top' && ui.tab === 'today') {
-    const prog = Math.min(1, d / 84), hit = d >= 84;
+    const prog = Math.min(1, d / PULL_TH), hit = d >= PULL_TH;
     pullEl.style.opacity = String(Math.min(1, prog * 1.3)); pullEl.style.transform = 'translateY(' + Math.min(prog * 10, 10) + 'px)';
     if (hit !== PL.hit || !pullEl.firstChild.innerHTML) { PL.hit = hit; pullEl.classList.toggle('hit', hit); if (hit && hit !== PL.hitPrev) buzz(8); PL.hitPrev = hit; pullEl.firstChild.innerHTML = ic('plus', 15) + (hit ? 'Отпустите: новая задача' : 'Потяните: новая задача'); }
   }
@@ -2473,8 +2485,8 @@ function pullEnd() {
   if (!PL) return; const g = PL; PL = null; if (!g.edge) return;
   noClickUntil = Date.now() + 350;
   pullEl.style.opacity = '0'; pullEl.classList.remove('hit'); pullEl.firstChild.innerHTML = '';
-  if (g.v) { g.v.style.transition = ''; const off = rband(g.d, 84) * 0.55 * (g.edge === 'top' ? 1 : -1); if (g.v.animate && !reduceMotion()) g.v.animate([{ transform: 'translate3d(0,' + off + 'px,0)' }, { transform: 'none' }], { duration: 420, easing: SPRING_EASE }); g.v.style.transform = ''; }
-  if (g.edge === 'top' && ui.tab === 'today' && g.d >= 84) openComposer();
+  if (g.v) { g.v.style.transition = ''; const off = rband(g.d, PULL_TH) * 0.8 * (g.edge === 'top' ? 1 : -1); if (g.v.animate && !reduceMotion()) g.v.animate([{ transform: 'translate3d(0,' + off + 'px,0)' }, { transform: 'none' }], { duration: 420, easing: SPRING_EASE }); g.v.style.transform = ''; }
+  if (g.edge === 'top' && ui.tab === 'today' && (g.d >= PULL_TH || (g.d >= 28 && (g.vy || 0) > 0.5))) openComposer();
 }
 document.addEventListener('touchend', pullEnd); document.addEventListener('touchcancel', () => { if (PL && PL.edge) { if (PL.v) { PL.v.style.transform = ''; PL.v.style.transition = ''; } pullEl.style.opacity = '0'; } PL = null; });
 
@@ -2587,7 +2599,7 @@ function wireInstall() {
   }));
 }
 /* ---------- обновления ---------- */
-const APP_VERSION = '33a3f8e8';
+const APP_VERSION = '0fec1ec2';
 let swReg = null, updateReady = false;
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   const hadCtl = !!navigator.serviceWorker.controller;
