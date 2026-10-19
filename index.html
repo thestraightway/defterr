@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#E8EBE6">
-<meta name="application-name" content="Дефтер">
+<meta name="application-name" content="Темп">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Дефтер">
+<meta name="apple-mobile-web-app-title" content="Темп">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="no-referrer">
@@ -17,16 +17,8 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preload" href="fonts/body-400.woff" as="font" type="font/woff" crossorigin>
-<link rel="preload" href="fonts/display-600.woff" as="font" type="font/woff" crossorigin>
-<title>Дефтер</title>
+<title>Темп</title>
 <style>
-@font-face{font-family:'DF Text';font-weight:400;font-style:normal;font-display:swap;src:url(fonts/body-400.woff) format('woff')}
-@font-face{font-family:'DF Text';font-weight:500;font-style:normal;font-display:swap;src:url(fonts/body-500.woff) format('woff')}
-@font-face{font-family:'DF Text';font-weight:600;font-style:normal;font-display:swap;src:url(fonts/body-600.woff) format('woff')}
-@font-face{font-family:'DF Text';font-weight:700;font-style:normal;font-display:swap;src:url(fonts/body-700.woff) format('woff')}
-@font-face{font-family:'DF Display';font-weight:500;font-style:normal;font-display:swap;src:url(fonts/display-500.woff) format('woff')}
-@font-face{font-family:'DF Display';font-weight:600;font-style:normal;font-display:swap;src:url(fonts/display-600.woff) format('woff')}
 
 /* Layout: одна колонка, как в приложении-заметках. Главная с личной плиткой элемента, нижняя панель вкладок,
    шторки для форм, свайпы по строкам.
@@ -38,9 +30,9 @@
   --gain:#1B7F4B; --loss:#C2432B; --warn:#8A5A0B; --warn-soft:#F0E5C6;
   --shadow:0 1px 2px rgba(20,25,20,.06),0 10px 26px -14px rgba(20,25,20,.3);
   --scrim:rgba(8,12,8,.5);
-  --font-display:'DF Display','DF Text',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --font-body:'DF Text',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace;
+  --font-display:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter','Segoe UI',Roboto,system-ui,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',Roboto,system-ui,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
   --r:16px;
 }
 @media (prefers-color-scheme: dark){
@@ -69,7 +61,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 input,select,textarea{font-size:16px}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;margin:0;letter-spacing:-.022em;text-wrap:balance}
 .shell{max-width:520px;margin-inline:auto;display:flex;flex-direction:column;gap:16px;min-width:0}
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--ink-2)}
@@ -324,6 +316,10 @@ input[type=checkbox].sw:disabled{opacity:.5}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.22)}
 .seg.in-type button[aria-pressed="true"][data-v="in"]{color:var(--gain)}
 .seg.in-type button[aria-pressed="true"][data-v="out"]{color:var(--loss)}
+.seg.in-type:has(button:nth-child(4)){display:grid;grid-template-columns:1fr 1fr}
+.seg.in-type button[aria-pressed="true"][data-v="din"]{color:var(--gain)}
+.seg.in-type button[aria-pressed="true"][data-v="dout"]{color:var(--loss)}
+.seg button{transition:background-color .2s,color .2s,box-shadow .2s}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .chips:empty{display:none}
 .chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-size:14px}
@@ -385,12 +381,118 @@ details.fromprice .two{display:grid;grid-template-columns:minmax(0,1fr) 110px;ga
 .check-row{display:flex;gap:12px;align-items:flex-start;margin:14px 0;font-size:14px}
 .check-row input{width:22px;height:22px;margin-top:1px;flex:none}
 
+
+/* ---- r3: плавность, как в iOS ---- */
+:root{--spring:cubic-bezier(.22,1.2,.36,1);--ease:cubic-bezier(.2,.8,.2,1);--shadow:0 0 0 .5px rgba(0,0,0,.04),0 1px 3px rgba(20,25,20,.05)}
+:root[data-theme="dark"],:root:not([data-theme="light"]) .x{--shadow:0 0 0 .5px rgba(255,255,255,.04)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--shadow:0 0 0 .5px rgba(255,255,255,.05)}}
+.card,.hero{border-radius:20px}
+.btn,.icon-btn,.chip,.mini-card,.qa button,.day,.task-main,.row,.ncard,.fab,#tabs button{transition:transform .18s var(--ease),background-color .18s,opacity .18s}
+.btn:active,.icon-btn:active,.chip:active,.mini-card:active,.qa button:active,.day:active,.fab:active{transform:scale(.96)}
+.row:active,.ncard:active,.task-main:active{opacity:.55;transition-duration:.04s}
+#tabs{background:color-mix(in srgb,var(--surface) 78%,transparent);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);border-top:.5px solid var(--line)}
+#tabs button[aria-current="page"]{background:none}
+#tabs button svg{transition:transform .25s var(--spring)}
+#tabs button[aria-current="page"] svg{transform:translateY(-1px) scale(1.08)}
+.sw-row{contain:layout paint;border-radius:0}
+.sw-row.drag .sw-fg{will-change:transform}
+.sw-fg{backface-visibility:hidden}
+.view{display:flex;flex-direction:column;gap:16px;min-width:0}
+#toast{width:max-content}
+.view.slide{will-change:transform,opacity}
+#toast{transition:opacity .2s}
+.sheet{will-change:transform}
+@keyframes rise{from{transform:translateY(100%)}to{transform:none}}
+.sheet{animation:rise .42s var(--ease)}
+.scrim{animation:fade .25s ease}
+.dayzone{min-height:58vh;display:flex;flex-direction:column;gap:16px;touch-action:pan-y}
+body{overscroll-behavior-y:none}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:1px;white-space:nowrap}
+.pill.in{background:color-mix(in srgb,var(--gain) 16%,transparent);color:var(--gain)}
+.pill.out{background:color-mix(in srgb,var(--loss) 16%,transparent);color:var(--loss)}
+.amt.pend{color:var(--ink-2);font-weight:600}
+.amt.pend::before{content:"\23F3\FE0E ";font-size:.85em}
+.pendstrip{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--accent-soft);border:0;border-radius:16px;padding:12px 14px;font-size:14px}
+.pendstrip b{display:block;font-size:15px}
+.pendstrip svg{margin-left:auto;flex:none;color:var(--ink-2)}
+.dsum{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dsum .card{padding:14px}
+.dsum small{display:block;color:var(--ink-2);font-size:12.5px;margin-bottom:4px}
+.dsum strong{font-family:var(--font-display);font-size:21px;font-variant-numeric:tabular-nums}
+.dsum .g strong{color:var(--gain)}.dsum .r strong{color:var(--loss)}
+.dtitle{font-size:13px;font-weight:600;color:var(--ink-2);margin:6px 4px -4px;text-transform:uppercase;letter-spacing:.05em}
+.pcard{padding:6px 0 10px;overflow:hidden}
+.phead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 16px 4px}
+.phead b{font-size:17px;overflow-wrap:anywhere}
+.dact{display:flex;gap:8px;padding:0 14px 12px}
+.dact .btn{flex:none}
+.late{color:var(--loss);font-weight:600}
+.pfoot{padding:4px 14px 0;display:flex;gap:8px}
+#cmp{position:fixed;inset:0;z-index:30}
+.cmp-scrim{position:absolute;inset:0;background:rgba(0,0,0,.28);animation:fade .2s ease}
+.cmp-bar{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border-radius:20px 20px 0 0;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-width:520px;margin:0 auto;box-shadow:0 -8px 30px rgba(0,0,0,.18);animation:cmpin .32s var(--ease)}
+@keyframes cmpin{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.cmp-grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:-4px auto 0}
+.cmp-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px}
+.cmp-chips::-webkit-scrollbar{display:none}
+.cmp-chips .chip{flex:none}
+.cmp-row{display:flex;gap:10px;align-items:center}
+.cmp-row input{flex:1;min-width:0;height:50px;border:0;border-radius:14px;background:var(--bg);padding:0 16px;font-size:17px}
+.cmp-go{flex:none;width:50px;height:50px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;transition:transform .15s,opacity .15s}
+.cmp-go[disabled]{opacity:.35}
+.cmp-go:not([disabled]):active{transform:scale(.9)}
+.cmp-done{font-size:12.5px;color:var(--ink-2);min-height:16px;margin:-4px 2px 0}
+#pull{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:4;text-align:center;font-size:13px;font-weight:600;color:var(--ink-2);pointer-events:none;opacity:0}
+#pull b{display:inline-flex;align-items:center;gap:6px;background:var(--surface);padding:7px 14px;border-radius:999px;box-shadow:var(--shadow);transition:color .2s,background-color .2s}
+#pull.hit b{background:var(--accent);color:var(--accent-ink)}
+#pull svg{transition:transform .25s var(--spring)}
+#pull.hit svg{transform:rotate(135deg)}
+.readview h4{font-family:var(--font-display);font-size:22px;margin:14px 0 6px;letter-spacing:-.02em}
+.readview h5{font-family:var(--font-display);font-size:17px;margin:12px 0 4px}
+.notecount{text-align:center;color:var(--ink-2);font-size:13px;padding:8px 0 2px}
+.cmp-row input:focus-visible{outline:none}
+.qbox{display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
+.bio-btn{width:96px;height:96px;border-radius:30px;border:0;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;transition:transform .2s var(--spring)}
+.bio-btn:active{transform:scale(.92)}
+.pin-dots{display:flex;gap:16px;margin:6px 0 4px}
+.pin-dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink-2);transition:background-color .15s,transform .2s var(--spring),border-color .15s}
+.pin-dots i.on{background:var(--accent);border-color:var(--accent);transform:scale(1.15)}
+.pin-dots.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:14px 22px;justify-content:center;margin:8px 0}
+.pad button{width:76px;height:76px;border-radius:50%;border:0;background:var(--surface);font-size:28px;font-weight:500;display:grid;place-items:center;font-variant-numeric:tabular-nums;transition:background-color .12s,transform .12s}
+.pad button:active{background:var(--accent-soft);transform:scale(.93)}
+.gopt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--surface);border:2px solid transparent;border-radius:18px;padding:14px 16px;box-shadow:var(--shadow);transition:border-color .2s,transform .15s}
+.gopt[aria-pressed="true"]{border-color:var(--accent)}
+.gopt:active{transform:scale(.98)}
+.gopt .gi{width:46px;height:46px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.gopt b{display:block;font-size:16px}
+.gopt small{display:block;color:var(--ink-2);font-size:13.5px;margin-top:2px}
+.nudge{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border-radius:18px;padding:12px 12px 12px 16px}
+.nudge div{flex:1;min-width:0}
+.nudge b{display:block}
+.nudge span{display:block;font-size:13px;color:var(--ink-2)}
+.nudge .x{background:none;border:0;font-size:22px;color:var(--ink-2);width:32px;height:36px}
+.bk-status{font-size:14px;font-weight:600;padding:8px 12px;border-radius:12px;background:var(--bg)}
+.bk-status.warn{background:var(--warn-soft);color:var(--warn)}
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--ink-2)}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.view.enter>*{animation:up .55s var(--ease) both}
+.view.enter>:nth-child(1){animation-delay:0s}.view.enter>:nth-child(2){animation-delay:.05s}.view.enter>:nth-child(3){animation-delay:.1s}.view.enter>:nth-child(4){animation-delay:.15s}.view.enter>:nth-child(5){animation-delay:.2s}.view.enter>:nth-child(6){animation-delay:.25s}.view.enter>:nth-child(n+7){animation-delay:.3s}
+.lock>*{animation:up .6s var(--ease) both}
+.lock>:nth-child(2){animation-delay:.08s}.lock>:nth-child(3){animation-delay:.16s}.lock>:nth-child(4){animation-delay:.24s}
+.brand .tile{animation:tilein .8s var(--spring) both}
+@keyframes tilein{from{opacity:0;transform:scale(.6) rotate(-8deg)}to{opacity:1;transform:none}}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;transition:opacity .35s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash i{width:54px;height:54px;border-radius:16px;background:var(--accent);animation:breathe 1.2s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(.86);opacity:.6}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes rise{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 
 /* ---- приложение на телефоне: без сдвигов, дерганий и случайных выделений ---- */
-html{background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%;scrollbar-gutter:stable;overscroll-behavior-y:none;height:100%}
+html{background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior-y:none;height:100%}
 body{min-height:100vh;min-height:100dvh;overflow-x:hidden;overscroll-behavior-y:none;
   padding-top:max(12px,env(safe-area-inset-top));padding-bottom:calc(110px + env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));
@@ -413,10 +515,11 @@ a{color:var(--accent)}
 </style>
 </head>
 <body>
+<div id="splash"><i></i></div>
 <div id="app" class="shell"></div>
 <nav id="tabs" hidden aria-label="Разделы"><div class="in"></div></nav>
 <div id="toast" role="status" hidden></div>
-<noscript><p style="padding:24px">Для работы дефтера нужен включённый JavaScript.</p></noscript>
+<noscript><p style="padding:24px">Для работы Темпа нужен включённый JavaScript.</p></noscript>
 <script>
 (() => {
 'use strict';
@@ -591,7 +694,7 @@ async function createVault(pass, data) {
   const raw = rnd(32), dk = await dataKey(raw);
   const sP = rnd(16), sR = rnd(16), recovery = makeRecovery();
   const kp = await kek(pass, sP), kr = await kek(normRec(recovery), sR);
-  const vault = { v: 1, sP: b64(sP), sR: b64(sR), wp: await seal(kp, raw), wr: await seal(kr, raw), d: await seal(dk, enc.encode(JSON.stringify(data))) };
+  const vault = { v: 1, id: b64(rnd(9)), sP: b64(sP), sR: b64(sR), wp: await seal(kp, raw), wr: await seal(kr, raw), d: await seal(dk, enc.encode(JSON.stringify(data))) };
   return { vault, dk, raw, recovery };
 }
 async function unlockVault(vault, secret, viaRecovery) {
@@ -710,6 +813,12 @@ const ICONS = {
   eyeoff: '<path d="M3 3l18 18"/><path d="M10.6 6a8 8 0 011.4-.5C18 5.5 21.5 12 21.5 12a17 17 0 01-3.2 4M6.3 7.7A16.5 16.5 0 002.5 12S6 18.5 12 18.5a8.4 8.4 0 004-1"/>',
   star: '<path d="M12 4l2.4 5 5.4.7-4 3.7 1 5.4L12 16l-4.8 2.8 1-5.4-4-3.7 5.4-.7L12 4z"/>',
   arrowin: '<path d="M12 5v14M6 13l6 6 6-6"/>', arrowout: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  share: '<path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>',
+  face: '<path d="M4 8V6a2 2 0 012-2h2M16 4h2a2 2 0 012 2v2M20 16v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2"/><path d="M9 10v1.5M15 10v1.5M12 10v3.5h-1M9.5 16c1.4 1.1 3.6 1.1 5 0"/>',
+  back: '<path d="M20 6H9l-5 6 5 6h11a1 1 0 001-1V7a1 1 0 00-1-1z"/><path d="M13 10l4 4M17 10l-4 4"/>',
+  keypad: '<circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/>',
+  unlock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 017.4-2"/>',
+  up: '<path d="M12 19V5M5 12l7-7 7 7"/>',
   dup: '<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   skip: '<path d="M5 6l7 6-7 6zM13 6l7 6-7 6z"/>', undo: '<path d="M9 8L4 12l5 4M4 12h10a6 6 0 010 8"/>',
@@ -735,7 +844,7 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { memSto
 function loadPrefs() {
   let o = null; try { o = JSON.parse(lsGet(PREF_KEY) || 'null'); } catch (e) { o = null; }
   const oldTheme = lsGet('defter.theme');
-  return { theme: (o && o.theme) || oldTheme || 'auto', accent: (o && o.accent) || 'arsenic', persona: Object.assign({}, DEF_PROFILE, (o && o.persona) || {}) };
+  return Object.assign({}, o || {}, { theme: (o && o.theme) || oldTheme || 'auto', accent: (o && o.accent) || 'arsenic', persona: Object.assign({}, DEF_PROFILE, (o && o.persona) || {}) });
 }
 const prefs = loadPrefs();
 const savePrefs = () => lsSet(PREF_KEY, JSON.stringify(prefs));
@@ -752,6 +861,114 @@ try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () =
 /* ---------- storage ---------- */
 const KEY = 'defter.vault.v1';
 const load = () => lsGet(KEY), store = v => lsSet(KEY, v);
+
+/* ---------- быстрый вход: ключ устройства, PIN, Face ID ---------- */
+let devReady = false, bioAvail = false;
+const idbOpen = () => new Promise((res, rej) => { try { const r = indexedDB.open('tempo', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } });
+async function kv(mode, k, v) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('kv', mode === 'get' ? 'readonly' : 'readwrite'), st = tx.objectStore('kv');
+    const q = mode === 'get' ? st.get(k) : mode === 'set' ? st.put(v, k) : st.delete(k);
+    tx.oncomplete = () => { db.close(); res(q.result); }; tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); };
+  });
+}
+async function devEnroll(vault, raw) {
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  await kv('set', 'dev', { key, wrapped: await seal(key, raw), vid: vault.id }); devReady = true;
+}
+async function devUnlock(vault) {
+  const d = await kv('get', 'dev'); if (!d || !vault.id || d.vid !== vault.id) throw new Error('nodev');
+  const raw = await open(d.key, d.wrapped), dk = await dataKey(raw);
+  return { dk, raw, data: JSON.parse(dec.decode(await open(dk, vault.d))) };
+}
+const devClear = () => { devReady = false; return kv('del', 'dev').catch(() => {}); };
+const pinHash = async (pin, salt) => b64(await crypto.subtle.digest('SHA-256', enc.encode(salt + ':' + pin)));
+const canBio = async () => { try { if (!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)) return false; return !!(await Promise.race([PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(), new Promise(r => setTimeout(() => r(false), 1200))])); } catch (e) { return false; } };
+async function bioCreate() {
+  const cred = await navigator.credentials.create({ publicKey: { challenge: rnd(32), rp: { name: 'Темп' }, user: { id: rnd(16), name: 'tempo', displayName: 'Темп' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' }, timeout: 60000, attestation: 'none' } });
+  return b64(cred.rawId);
+}
+async function bioCheck() { await navigator.credentials.get({ publicKey: { challenge: rnd(32), allowCredentials: [{ type: 'public-key', id: unb64(prefs.credId) }], userVerification: 'required', timeout: 60000 } }); }
+function enterSession(u) { S = normalize(u.data); prefs.persona = Object.assign({}, S.profile); savePrefs(); ui.tab = 'home'; ui.day = todayISO(); ui.month = ui.day.slice(0, 7); ui.error = ''; ui.mode = null; ui.pin = ''; ui.fails = 0; }
+async function quickOpen(skipGate) {
+  const vault = JSON.parse(load());
+  if (!skipGate && prefs.gate === 'bio') await bioCheck();
+  const u = await devUnlock(vault);
+  session = { dk: u.dk, raw: u.raw, vault, demo: false }; enterSession(u); render();
+}
+async function boot() {
+  applyTheme();
+  const raw = load(); let vault = null; try { vault = raw ? JSON.parse(raw) : null; } catch (e) { vault = null; }
+  if (vault && prefs.gate && prefs.gate !== 'password') { try { const d = await kv('get', 'dev'); devReady = !!(d && vault.id && d.vid === vault.id); } catch (e) { devReady = false; } }
+  if (devReady && prefs.gate === 'none') { try { await quickOpen(true); const sp0 = document.getElementById('splash'); if (sp0) { sp0.classList.add('out'); setTimeout(() => sp0.remove(), 450); } return; } catch (e) { devReady = false; } }
+  ui.autoBio = devReady && prefs.gate === 'bio';
+  render();
+  const sp = document.getElementById('splash'); if (sp) { sp.classList.add('out'); setTimeout(() => sp.remove(), 450); }
+  canBio().then(v => { if (v !== bioAvail) { bioAvail = v; if (S && ui.tab === 'settings') render(); } });
+}
+
+/* ---------- резервные копии ---------- */
+const bkName = () => 'temp-kopiya-' + todayISO() + '.json';
+const bkAge = () => prefs.lastBackup ? Math.floor((Date.now() - prefs.lastBackup) / 864e5) : null;
+const bkLabel = () => { const a = bkAge(); return a === null ? 'Копию ещё не сохраняли' : a === 0 ? 'Последняя копия: сегодня' : 'Последняя копия: ' + a + ' ' + plural(a, ['день', 'дня', 'дней']) + ' назад'; };
+const bkDue = () => !session.demo && S && (bkAge() === null ? Date.now() - (prefs.since || Date.now()) > 2 * 864e5 : bkAge() >= 7) && !(prefs.bkSnooze && Date.now() < prefs.bkSnooze);
+function markBackup() { prefs.lastBackup = Date.now(); prefs.bkSnooze = 0; savePrefs(); toast('Копия сохранена'); render(); }
+function saveBackup() {
+  if (session.demo || !session.vault) return;
+  const f = new File([JSON.stringify({ app: 'tempo', v: 1, saved: new Date().toISOString(), vault: session.vault })], bkName(), { type: 'application/json' });
+  persist();
+  if (navigator.canShare && navigator.canShare({ files: [f] })) {
+    navigator.share({ files: [f], title: 'Копия Темпа' }).then(markBackup, e => { if (!e || e.name !== 'AbortError') downloadFile(f); });
+  } else downloadFile(f);
+}
+function downloadFile(f) { const u = URL.createObjectURL(f), a = document.createElement('a'); a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 5000); markBackup(); }
+function parseBackup(text) {
+  let o; try { o = JSON.parse(text); } catch (e) { return null; }
+  const v = o && o.vault ? o.vault : o;
+  return v && v.v === 1 && v.d && v.wp && v.sP && v.wr && v.sR ? v : null;
+}
+function pickBackup(cb) {
+  const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,application/json,text/plain';
+  i.onchange = () => { const f = i.files && i.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { const v = parseBackup(String(r.result || '')); if (!v) { toast('Это не файл копии Темпа'); return; } cb(v); }; r.readAsText(f); };
+  i.click();
+}
+async function snapAdd(force) {
+  if (session.demo || !session.vault) return;
+  const list = (await kv('get', 'snaps').catch(() => null)) || [];
+  if (!force && list[0] && Date.now() - list[0].t < 6 * 36e5) return;
+  list.unshift({ t: Date.now(), vault: JSON.stringify(session.vault) }); await kv('set', 'snaps', list.slice(0, 7));
+}
+/* восстановление: свой пароль копии, затем замена данных */
+function restoreSheet(vault, opts) {
+  opts = opts || {};
+  sheet(head('Восстановить копию') + '<p class="muted small" style="margin:0 0 12px">Введите пароль, с которым была сохранена эта копия. ' + (S ? 'Текущие данные будут заменены, но перед этим мы сохраним страховочную копию на устройстве.' : '') + '</p><label class="f"><span>Пароль копии</span><input id="rs-pw" type="password" autocomplete="current-password"></label><p class="err" id="rs-err"></p><button class="btn primary" id="rs-go" style="width:100%">Восстановить</button>',
+    (el, close) => {
+      const inp = el.querySelector('#rs-pw'), err = el.querySelector('#rs-err'), go = el.querySelector('#rs-go');
+      inp.focus();
+      const run = async () => {
+        if (!inp.value) { err.textContent = 'Введите пароль.'; return; }
+        go.disabled = true; go.textContent = 'Проверяем…';
+        let u; try { u = await unlockVault(vault, inp.value, false); } catch (e) { go.disabled = false; go.textContent = 'Восстановить'; err.textContent = 'Пароль не подошёл.'; return; }
+        try { if (S && session.vault) await snapAdd(true); } catch (e) { /* ignore */ }
+        if (!vault.id) vault.id = b64(rnd(9));
+        clearTimeout(timer); store(JSON.stringify(vault));
+        session = { dk: u.dk, raw: u.raw, vault, demo: false };
+        enterSession(u); close(); ui.gateSetup = !prefs.gate;
+        if (prefs.gate && prefs.gate !== 'password') { try { await devEnroll(vault, u.raw); } catch (e) { /* ignore */ } }
+        prefs.since = prefs.since || Date.now(); savePrefs(); render(); toast('Данные восстановлены');
+      };
+      go.addEventListener('click', run); inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') run(); });
+    });
+}
+function snapsSheet() {
+  kv('get', 'snaps').catch(() => null).then(list => {
+    list = list || [];
+    sheet(head('Автокопии на этом телефоне') + '<p class="muted small" style="margin:0 0 12px">Темп сам хранит до 7 последних копий. Они лежат внутри приложения: если удалить его или очистить данные Safari, они пропадут. Поэтому раз в неделю сохраняйте копию в файл.</p>' +
+      (list.length ? '<div class="rows">' + list.map((x, i) => '<div class="rowwrap"><div class="row" style="cursor:default"><span class="mid"><b>' + relTime(x.t) + '</b><span>' + new Date(x.t).toLocaleDateString('ru-RU') + '</span></span><button class="btn sm" data-i="' + i + '">Вернуть</button></div></div>').join('') + '</div>' : '<div class="card empty"><b>Пока пусто</b>Первая автокопия появится после первых записей.</div>'),
+      (el, close) => { el.addEventListener('click', async ev => { const b = ev.target.closest('[data-i]'); if (!b) return; const x = list[Number(b.dataset.i)]; if (!x) return; let v; try { v = JSON.parse(x.vault); } catch (e) { return; } close(); try { const u = { dk: session.dk, raw: session.raw }; const data = JSON.parse(dec.decode(await open(session.dk, v.d))); await snapAdd(true); S = normalize(data); session.vault.d = v.d; await persist(); render(); toast('Данные возвращены к ' + relTime(x.t)); } catch (e) { restoreSheet(v); } }); });
+  });
+}
 
 /* ---------- data ---------- */
 function newProject(name, tpl) {
@@ -775,6 +992,9 @@ function newProject(name, tpl) {
     e('out', 2400, 'Бензин, развоз', 'Топливо', 3);
     e('out', 12000, 'Зарплата рабочим', 'Зарплата', 2);
     e('in', 23600, 'Продажа: кафе', 'Продажи', 1, { unpaid: true, who: 'Кафе у трассы' });
+    p.ledger.push({ id: uid(), type: 'in', amount: 14800, title: 'Продажа: тушки', cat: 'Продажи', date: addDays(t, -16), note: '', unpaid: true, who: 'Магазин «Берёзка»', due: addDays(t, -3) });
+    p.ledger.push({ id: uid(), type: 'in', amount: 9200, title: 'Продажа: курица', cat: 'Продажи', date: addDays(t, -5), note: '', unpaid: true, who: 'Магазин «Берёзка»', due: addDays(t, 4) });
+    p.ledger.push({ id: uid(), type: 'out', amount: 18000, title: 'Корм, в долг', cat: 'Корм', date: addDays(t, -9), note: '', unpaid: true, who: 'Поставщик корма', due: addDays(t, 6) });
     e('in', 9800, 'Продажа: розница', 'Продажи', 0);
     e('out', 4100, 'Упаковка и пакеты', 'Закупка', 0);
     [['Тушка бройлера', 'кг', 285, 224], ['Грудка', 'кг', 410, 330], ['Окорочка', 'кг', 265, 205], ['Крылья', 'кг', 230, 170], ['Печень', 'кг', 190, 140]]
@@ -809,7 +1029,7 @@ function initialState(demo) { const p = newProject('Птицефабрика', '
 
 let S = null;
 let session = { dk: null, raw: null, vault: null, demo: false };
-const ui = { tab: 'home', day: todayISO(), month: todayISO().slice(0, 7), qty: {}, mode: null, busy: false, recovery: null, error: '', lf: 'all', lq: '', nq: '', ntag: '' };
+const ui = { tab: 'home', day: todayISO(), month: todayISO().slice(0, 7), qty: {}, mode: null, busy: false, recovery: null, error: '', pin: '', fails: 0, gateSetup: false, autoBio: false, lf: 'all', led: 'ops', lq: '', nq: '', ntag: '' };
 const P = () => S.projects.find(p => p.id === S.activeId) || S.projects[0];
 
 let chain = Promise.resolve(), timer = null;
@@ -819,10 +1039,11 @@ function persist() {
     if (!session.dk || !S) return;
     session.vault.d = await seal(session.dk, enc.encode(JSON.stringify(S)));
     store(JSON.stringify(session.vault));
+    snapAdd(false).catch(() => {});
   }).catch(() => {});
   return chain;
 }
-function lockNow() { clearTimeout(timer); const done = persist(); done.then(() => { S = null; session = { dk: null, raw: null, vault: null, demo: false }; ui.mode = null; ui.error = ''; render(); }); }
+function lockNow(manual) { if (typeof closeComposer === 'function') closeComposer(); clearTimeout(timer); const done = persist(); done.then(() => { S = null; session = { dk: null, raw: null, vault: null, demo: false }; ui.mode = null; ui.error = ''; ui.pin = ''; ui.fails = 0; ui.autoBio = !manual && devReady && prefs.gate === 'bio'; render(); }); }
 const hideOn = () => !!(S && S.settings && S.settings.hide);
 const mny = n => hideOn() ? '••• ₽' : money(n);
 const mfmt = n => hideOn() ? '•••' : fmt(n);
@@ -836,6 +1057,12 @@ function toast(msg, undo) {
   el.hidden = false;
   if (undo) el.querySelector('button').addEventListener('click', () => { el.hidden = true; undo(); });
   toastT = setTimeout(() => { el.hidden = true; }, undo ? 5000 : 2200);
+}
+function toastBtn(msg, label, fn, ms) {
+  const el = $('#toast'); clearTimeout(toastT);
+  el.innerHTML = '<span>' + esc(msg) + '</span><button type="button">' + esc(label) + '</button>';
+  el.hidden = false; el.querySelector('button').addEventListener('click', () => { el.hidden = true; fn(); });
+  toastT = setTimeout(() => { el.hidden = true; }, ms || 6000);
 }
 function removeWithUndo(list, id, label) {
   const i = list.findIndex(x => x.id === id); if (i < 0) return;
@@ -876,7 +1103,7 @@ function opSheet(id, pre) {
   let type = e.type;
   const itemsOpt = p.items.map(i => '<option value="' + i.id + '">' + esc(i.name) + ', ' + fmt(i.price) + ' ₽/' + esc(i.unit) + '</option>').join('');
   sheet(head(ex ? 'Правка записи' : 'Новая запись') +
-    '<div class="seg in-type" id="o-type"><button type="button" data-v="in">Доход</button><button type="button" data-v="out">Расход</button></div>' +
+    '<div class="seg in-type" id="o-type"><button type="button" data-v="in">Доход</button><button type="button" data-v="out">Расход</button>' + (p.flags.debts ? '<button type="button" data-v="din">Мне должны</button><button type="button" data-v="dout">Я должен</button>' : '') + '</div><p class="hint" id="o-dhint" hidden style="margin:-4px 0 10px"></p>' +
     '<label class="f"><span>Сумма, ₽</span><input id="o-amt" class="big" inputmode="decimal" placeholder="0" autocomplete="off"></label>' +
     (p.items.length ? '<details class="fromprice"><summary>Посчитать из прайса</summary><div class="two"><select id="o-item" class="field"><option value="">Позиция…</option>' + itemsOpt + '</select><input id="o-qty" class="field" inputmode="decimal" placeholder="Кол-во" autocomplete="off"></div><div class="hint" id="o-hint" style="margin:8px 0 0"></div></details>' : '') +
     '<label class="f"><span>Что это</span><input id="o-title" autocomplete="off" placeholder="Например: продажа в магазин"></label>' +
@@ -884,17 +1111,27 @@ function opSheet(id, pre) {
     '<div class="f"><span>Категория</span><input id="o-cat" autocomplete="off" placeholder="Выберите или впишите"></div><div class="chips" id="o-cats"></div>' +
     '<label class="f"><span>Дата</span><input type="date" id="o-date"></label>' +
     '<label class="f"><span>Заметка</span><input id="o-note" autocomplete="off"></label>' +
-    (p.flags.debts ? '<label class="switchrow"><span>Ещё не оплачено<small>Не входит в доход и расход, пока не отметите оплату</small></span><input type="checkbox" class="sw" id="o-unpaid"></label><label class="f" id="o-whowrap" hidden style="margin-top:10px"><span>Кто должен / кому должны</span><input id="o-who" autocomplete="off"></label>' : '') +
+    (p.flags.debts ? '<label class="f" id="o-whowrap" hidden><span id="o-whol">Кто</span><input id="o-who" autocomplete="off" placeholder="Имя или название"></label><label class="f" id="o-duewrap" hidden><span>Срок оплаты (по желанию)</span><input type="date" id="o-due"></label>' : '') +
     '<p class="err" id="o-err"></p><div class="actions">' + (ex ? '<button class="btn danger" id="o-del" type="button">Удалить</button>' : '') + '<button class="btn primary" id="o-save" type="button">Сохранить</button></div>',
   (el, close) => {
     const g = s => el.querySelector(s);
     g('#o-amt').value = e.amount === '' ? '' : String(e.amount).replace('.', ',');
     g('#o-title').value = e.title; g('#o-cat').value = e.cat; g('#o-date').value = e.date; g('#o-note').value = e.note;
-    if (p.flags.debts) { g('#o-unpaid').checked = !!e.unpaid; g('#o-who').value = e.who || ''; g('#o-whowrap').hidden = !e.unpaid; g('#o-unpaid').addEventListener('change', ev => { g('#o-whowrap').hidden = !ev.target.checked; }); }
+    let debt = !!e.unpaid && !!p.flags.debts;
+    if (p.flags.debts) { g('#o-who').value = e.who || ''; g('#o-due').value = e.due || ''; }
     const usedCats = t => { const s = new Set(CATS[t]); p.ledger.forEach(x => { if (x.type === t && x.cat) s.add(x.cat); }); return Array.from(s); };
-    const paintType = () => { el.querySelectorAll('#o-type button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === type))); g('#o-cats').innerHTML = chipsHTML(usedCats(type), g('#o-cat').value.trim()); };
+    const cur = () => debt ? (type === 'in' ? 'din' : 'dout') : type;
+    const paintType = () => {
+      el.querySelectorAll('#o-type button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === cur())));
+      g('#o-cats').innerHTML = chipsHTML(usedCats(type), g('#o-cat').value.trim());
+      if (p.flags.debts) {
+        g('#o-whowrap').hidden = !debt; g('#o-duewrap').hidden = !debt; g('#o-dhint').hidden = !debt;
+        g('#o-whol').textContent = type === 'in' ? 'Кто вам должен' : 'Кому вы должны';
+        g('#o-dhint').textContent = 'Долг не считается доходом или расходом, пока его не оплатят. Потом отметьте оплату свайпом или кнопкой во вкладке «Долги».';
+      }
+    };
     paintType();
-    g('#o-type').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; type = b.dataset.v; paintType(); fromPrice(); });
+    g('#o-type').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; const v = b.dataset.v; debt = v[0] === 'd'; type = v === 'din' ? 'in' : v === 'dout' ? 'out' : v; paintType(); fromPrice(); });
     g('#o-cats').addEventListener('click', ev => { const b = ev.target.closest('[data-c]'); if (!b) return; g('#o-cat').value = b.dataset.c; paintType(); });
     g('#o-cat').addEventListener('input', paintType);
     const paintSug = () => { g('#o-sug').innerHTML = p.flags.suggest ? sugHTML(suggest(p, 'ledger', g('#o-title').value, 4), true) : ''; };
@@ -921,10 +1158,12 @@ function opSheet(id, pre) {
     g('#o-save').addEventListener('click', () => {
       const amount = num(g('#o-amt').value);
       if (amount <= 0) { g('#o-err').textContent = 'Введите сумму больше нуля.'; g('#o-amt').focus(); return; }
-      const rec = { id: ex ? ex.id : uid(), type, amount, title: g('#o-title').value.trim() || g('#o-cat').value.trim() || 'Без названия', cat: g('#o-cat').value.trim(), date: g('#o-date').value || todayISO(), note: g('#o-note').value.trim(), unpaid: p.flags.debts ? g('#o-unpaid').checked : false, who: p.flags.debts ? g('#o-who').value.trim() : '' };
+      const rec = { id: ex ? ex.id : uid(), type, amount, title: g('#o-title').value.trim() || g('#o-cat').value.trim() || 'Без названия', cat: g('#o-cat').value.trim(), date: g('#o-date').value || todayISO(), note: g('#o-note').value.trim(), unpaid: debt, who: debt ? g('#o-who').value.trim() : '', due: debt ? g('#o-due').value : '' };
       if (ex) Object.assign(ex, rec); else p.ledger.push(rec);
       if (pre && pre.clearQty) ui.qty = {};
-      ui.month = rec.date.slice(0, 7); save(); close(); render();
+      if (!debt) ui.month = rec.date.slice(0, 7);
+      if (debt && !(ui.tab === 'ledger')) { /* остаёмся там, где были */ }
+      save(); close(); render(); if (debt) toast(type === 'in' ? 'Долг записан: вам должны' : 'Долг записан: вы должны');
     });
     if (ex) armDelete(g('#o-del'), () => { close(); removeWithUndo(p.ledger, ex.id, 'Запись удалена'); render(); });
   });
@@ -940,9 +1179,9 @@ function kindLabel(t, today) {
   if (t.kind === 'once' && t.date < today) { const d = parseISO(t.date); return 'с ' + d.getDate() + ' ' + MONTHS_G[d.getMonth()]; }
   return 'один раз';
 }
-function taskSheet(id) {
+function taskSheet(id, pre) {
   const p = P(); const ex = id ? p.tasks.find(t => t.id === id) : null;
-  const t0 = Object.assign({ title: '', kind: 'once', days: [1, 2, 3, 4, 5], date: ui.day, star: false }, ex || {});
+  const t0 = Object.assign({ title: '', kind: 'once', days: [1, 2, 3, 4, 5], date: ui.day, star: false }, ex || {}, pre || {});
   let kind = t0.kind, days = (t0.days || []).slice();
   sheet(head(ex ? 'Правка задачи' : 'Новая задача') +
     '<label class="f"><span>Что сделать</span><input id="t-title" autocomplete="off" placeholder="Например: проверить остатки"></label><div class="chips" id="t-sug"></div>' +
@@ -1036,6 +1275,8 @@ function readHTML(body) {
       const on = l.startsWith('☑ ');
       return '<button class="cl' + (on ? ' on' : '') + '" type="button" data-i="' + i + '"><i>' + ic('check', 14) + '</i><span>' + tagify(l.slice(2)) + '</span></button>';
     }
+    if (l.startsWith('## ')) return '<h5>' + tagify(l.slice(3)) + '</h5>';
+    if (l.startsWith('# ')) return '<h4>' + tagify(l.slice(2)) + '</h4>';
     if (!l.trim()) return '<div class="gap"></div>';
     return '<p>' + tagify(l) + '</p>';
   }).join('');
@@ -1045,10 +1286,10 @@ function noteSheet(id) {
   const p = P(); let n = id ? p.notes.find(x => x.id === id) : null;
   let mode = n && noteStats(n).tasks > 0 && n.body.trim().split('\n').length <= 12 ? 'read' : 'write';
   const w = sheet(
-    '<div class="sheet-head"><div class="seg" id="ne-mode" style="margin:0;flex:0 1 auto"><button type="button" data-v="write">Писать</button><button type="button" data-v="read">Читать</button></div><div class="hgap"><button class="icon-btn" id="n-pin" aria-label="Закрепить" type="button">' + ic('pin') + '</button><button class="icon-btn" data-close aria-label="Готово">' + ic('check') + '</button></div></div>' +
+    '<div class="sheet-head"><div class="seg" id="ne-mode" style="margin:0;flex:0 1 auto"><button type="button" data-v="write">Писать</button><button type="button" data-v="read">Читать</button></div><div class="hgap"><button class="icon-btn" id="n-share" aria-label="Поделиться текстом" type="button">' + ic('share') + '</button><button class="icon-btn" id="n-pin" aria-label="Закрепить" type="button">' + ic('pin') + '</button><button class="icon-btn" data-close aria-label="Готово">' + ic('check') + '</button></div></div>' +
     '<input class="ntitle" id="n-title" placeholder="Название" autocomplete="off">' +
     '<div class="chips" id="ne-tpl"></div>' +
-    '<div class="tb" id="ne-tb"><button type="button" data-t="check">☐ Чек-лист</button><button type="button" data-t="bullet">• Список</button><button type="button" data-t="date">Дата</button><button type="button" data-t="time">Время</button><button type="button" data-t="tag"># Тег</button></div>' +
+    '<div class="tb" id="ne-tb"><button type="button" data-t="h1"><b>Aa</b> Заголовок</button><button type="button" data-t="h2">Подзаголовок</button><button type="button" data-t="check">☐ Чек-лист</button><button type="button" data-t="bullet">• Список</button><button type="button" data-t="date">Дата</button><button type="button" data-t="time">Время</button><button type="button" data-t="tag"># Тег</button></div>' +
     '<textarea class="nbody" id="n-body" placeholder="Пишите здесь…"></textarea>' +
     '<div class="readview" id="ne-read" hidden></div>' +
     '<div class="ne-foot muted small" id="ne-foot"></div>' +
@@ -1081,7 +1322,9 @@ function noteSheet(id) {
     g('#ne-tb').addEventListener('pointerdown', ev => ev.preventDefault());
     g('#ne-tb').addEventListener('click', ev => {
       const b = ev.target.closest('[data-t]'); if (!b) return; const k = b.dataset.t, grp = ['☐ ', '☑ ', '• '];
-      if (k === 'check') apply(togglePrefix(ta.value, ta.selectionStart, '☐ ', grp));
+      if (k === 'h1') apply(togglePrefix(ta.value, ta.selectionStart, '# ', ['# ', '## ']));
+      else if (k === 'h2') apply(togglePrefix(ta.value, ta.selectionStart, '## ', ['# ', '## ']));
+      else if (k === 'check') apply(togglePrefix(ta.value, ta.selectionStart, '☐ ', grp));
       else if (k === 'bullet') apply(togglePrefix(ta.value, ta.selectionStart, '• ', grp));
       else if (k === 'date') { const d = new Date(); insert(d.getDate() + ' ' + MONTHS_G[d.getMonth()] + ' ' + d.getFullYear()); }
       else if (k === 'time') { const d = new Date(); insert(pad(d.getHours()) + ':' + pad(d.getMinutes())); }
@@ -1095,8 +1338,18 @@ function noteSheet(id) {
     g('#ne-read').addEventListener('click', ev => {
       const b = ev.target.closest('.cl'); if (!b) return;
       const lines = ta.value.split('\n'), i = Number(b.dataset.i), l = lines[i];
-      lines[i] = (l.startsWith('☑ ') ? '☐ ' : '☑ ') + l.slice(2); ta.value = lines.join('\n'); upd(); buzz(8);
+      lines[i] = (l.startsWith('☑ ') ? '☐ ' : '☑ ') + l.slice(2);
+      let a0 = i, b0 = i; const isC = x => x.startsWith('☐ ') || x.startsWith('☑ ');
+      while (a0 > 0 && isC(lines[a0 - 1])) a0--; while (b0 < lines.length - 1 && isC(lines[b0 + 1])) b0++;
+      const blk = lines.slice(a0, b0 + 1); lines.splice(a0, blk.length, ...blk.filter(x => x.startsWith('☐ ')).concat(blk.filter(x => x.startsWith('☑ '))));
+      ta.value = lines.join('\n'); upd(); buzz(8);
       g('#ne-read').innerHTML = readHTML(ta.value);
+    });
+    g('#n-share').addEventListener('click', () => {
+      const txt = (ti.value.trim() ? ti.value.trim() + '\n\n' : '') + ta.value.replace(/^☐ /gm, '○ ').replace(/^☑ /gm, '● ').replace(/^#{1,2} /gm, '');
+      if (!txt.trim()) { toast('Пока нечем делиться'); return; }
+      if (navigator.share) { navigator.share({ text: txt }).catch(() => {}); return; }
+      try { navigator.clipboard.writeText(txt).then(() => toast('Текст заметки скопирован'), () => copySheet(txt)); } catch (e) { copySheet(txt); }
     });
     g('#n-pin').addEventListener('click', () => { ensure(); n.pinned = !n.pinned; save(); paintPin(); });
     paintPin(); foot(); setMode(mode);
@@ -1165,6 +1418,7 @@ function vHome(p) {
   const sub = open.length ? 'Сегодня ' + open.length + ' ' + plural(open.length, ['задача', 'задачи', 'задач']) + ' в работе' : all.length ? 'Все задачи на сегодня сделаны' : 'На сегодня задач нет';
   const mods = p.modules;
   return '<section class="hero">' + '<button class="tilebtn" data-act="aboutTile" aria-label="Об элементе">' + tileHTML(pr, false) + '</button><div class="hello"><div class="muted small">' + WD_FULL[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS_G[now.getMonth()] + '</div><h2>' + greeting(now.getHours()) + ',<br>' + esc(pr.name) + '</h2><div class="sub">' + sub + '</div></div><button class="icon-btn eye" data-act="toggleHide" aria-label="' + (hideOn() ? 'Показать суммы' : 'Скрыть суммы') + '">' + ic(hideOn() ? 'eyeoff' : 'eye', 20) + '</button></section>' + quoteHTML() +
+    (bkDue() ? '<div class="nudge"><div><b>Сохраните копию</b><span>Пять секунд, и данные в безопасности, даже если телефон потеряется.</span></div><button class="btn sm primary" data-act="saveBackup">Сохранить</button><button class="x" data-act="snoozeBackup" aria-label="Напомнить позже">×</button></div>' : '') +
     '<div class="duo">' +
     (mods.planner ? '<button class="mini-card" data-act="goTab" data-v="today"><small>Задачи</small><div style="display:flex;align-items:center;gap:12px">' + ringHTML(doneN, all.length) + '<span class="muted small">' + (open.length ? 'осталось ' + open.length : all.length ? 'всё готово' : 'пусто') + '</span></div></button>' : '') +
     (mods.ledger ? '<button class="mini-card" data-act="goTab" data-v="ledger"><small>Прибыль, ' + MONTHS[now.getMonth()] + '</small><strong style="' + (profit < 0 ? 'color:var(--loss)' : '') + '">' + (profit < 0 && !hideOn() ? '−' : '') + mny(Math.abs(profit)) + '</strong>' + (goal > 0 ? '<div class="meter" role="img" aria-label="Цель выполнена на ' + pct + '%"><i style="width:' + pct + '%"></i></div><span class="muted small">' + pct + '% от ' + mny(goal) + '</span>' : '<span class="muted small">Цель не задана</span>') + '</button>' : '') +
@@ -1187,10 +1441,10 @@ function vToday(p) {
   const title = day === today ? 'Сегодня' : WD_FULL[dt.getDay()];
   const free = p.tasks.filter(t => t.kind === 'free');
   return '<div class="card" data-nav="week"><div class="week"><button class="nav" data-act="weekPrev" aria-label="Неделей раньше">' + ic('left', 18) + '</button>' + strip + '<button class="nav" data-act="weekNext" aria-label="Неделей позже">' + ic('right', 18) + '</button></div></div>' +
-    '<div class="dayhead" data-nav="day"><div><h2>' + title + '</h2><div class="muted small">' + dt.getDate() + ' ' + MONTHS_G[dt.getMonth()] + (day !== today ? ' · <button class="linkbtn" style="min-height:0;padding:0" data-act="goToday">Сегодня</button>' : '') + '</div></div>' + ringHTML(doneN, total) + '</div>' +
-    (swipeHintOn() && total ? '<div class="hintcard"><span>Свайп вправо по задаче: готово. Влево: перенести на завтра или пропустить.</span><button data-act="hideHints">Понятно</button></div>' : '') +
-    (total ? '<div class="card"><ul class="tasks">' + tf.over.map(t => taskRow(p, t, day, today, true)).join('') + tf.list.map(t => taskRow(p, t, day, today, false)).join('') + '</ul></div>' : '<div class="card empty" data-nav="day"><b>На этот день пусто</b>Добавьте задачу кнопкой «+». Повторяющиеся появятся сами.</div>') +
-    (free.length ? '<div class="card"><h3 class="card-title">Когда по кайфу</h3><ul class="tasks">' + free.map(t => taskRow(p, t, day, today, false)).join('') + '</ul></div>' : '');
+    '<div class="dayzone" data-nav="day"><div class="dayhead" data-nav="day"><div><h2>' + title + '</h2><div class="muted small">' + dt.getDate() + ' ' + MONTHS_G[dt.getMonth()] + (day !== today ? ' · <button class="linkbtn" style="min-height:0;padding:0" data-act="goToday">Сегодня</button>' : '') + '</div></div>' + ringHTML(doneN, total) + '</div>' +
+    (swipeHintOn() && total ? '<div class="hintcard"><span>Свайп вправо по задаче: готово. Влево: перенести. Тяните вниз: новая задача. Листайте пустое место, чтобы сменить день.</span><button data-act="hideHints">Понятно</button></div>' : '') +
+    (total ? '<div class="card"><ul class="tasks">' + tf.over.map(t => taskRow(p, t, day, today, true)).join('') + tf.list.map(t => taskRow(p, t, day, today, false)).join('') + '</ul></div>' : '<div class="card empty"><b>На этот день пусто</b>Потяните экран вниз или нажмите «+», чтобы добавить. Повторяющиеся появятся сами.</div>') +
+    (free.length ? '<div class="card"><h3 class="card-title">Когда по кайфу</h3><ul class="tasks">' + free.map(t => taskRow(p, t, day, today, false)).join('') + '</ul></div>' : '') + '</div>';
 }
 
 function chartSVG(s) {
@@ -1207,15 +1461,63 @@ function chartSVG(s) {
   [1, 5, 10, 15, 20, 25, s.dim].forEach((d, k, arr) => { if (arr.indexOf(d) !== k || d > s.dim) return; if (d !== s.dim && s.dim - d < 3) return; labels += '<text x="' + ((d - 1) * slot + slot * 0.45).toFixed(1) + '" y="94" text-anchor="middle">' + d + '</text>'; });
   return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Доходы и расходы по дням месяца"><line class="gl" x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '"/><line class="gl" x1="0" x2="' + W + '" y1="' + top + '" y2="' + top + '" stroke-dasharray="3 4"/><text x="0" y="9">' + mfmt(max) + '</text>' + bars + labels + '</svg>';
 }
+
+/* ---------- долги ---------- */
+const dayGap = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 864e5);
+const dWord = n => n + ' ' + plural(n, ['день', 'дня', 'дней']);
+function debtRow(e, today) {
+  const age = dayGap(e.date, today), late = e.due && e.due < today;
+  const dd = e.due ? parseISO(e.due) : null;
+  const sub = (e.due ? (late ? '<span class="late">просрочено на ' + dWord(dayGap(e.due, today)) + '</span>' : 'срок ' + dd.getDate() + ' ' + MONTHS_G[dd.getMonth()]) : (age > 0 ? dWord(age) + ' назад' : 'сегодня'));
+  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + '</b><span>' + sub + (e.note ? ' · ' + esc(e.note) : '') + '</span></span><span class="amt ' + e.type + '">' + mfmt(e.amount) + ' ₽</span></button>' +
+    '<div class="dact"><button class="btn sm primary" data-act="payDebt" data-id="' + e.id + '">Оплачено</button><button class="btn sm ghost" data-act="partDebt" data-id="' + e.id + '">Часть</button></div>';
+  return swRow('op', e.id, { t: 'Оплачено', c: 'var(--gain)', i: 'check' }, { t: 'Удалить', c: 'var(--loss)', i: 'trash' }, inner, 'rowwrap');
+}
+function vDebts(p) {
+  const today = todayISO(), un = p.ledger.filter(e => e.unpaid);
+  const sum = t => un.filter(e => e.type === t).reduce((a, e) => a + e.amount, 0);
+  if (!un.length) return '<div class="card empty"><b>Долгов нет</b>Все расчёты закрыты. Кто-то должен вам или вы кому-то? Нажмите «+», чтобы записать, и приложение напомнит.</div>';
+  const part = (t, title) => {
+    const list = un.filter(e => e.type === t); if (!list.length) return '';
+    const by = {}; list.forEach(e => { const k = (e.who || '').trim() || 'Без имени'; (by[k] = by[k] || []).push(e); });
+    const names = Object.keys(by).sort((a, b) => by[b].reduce((x, e) => x + e.amount, 0) - by[a].reduce((x, e) => x + e.amount, 0));
+    return '<div class="dtitle">' + title + '</div>' + names.map(n => {
+      const es = by[n].slice().sort((a, b) => a.date < b.date ? -1 : 1), tot = es.reduce((a, e) => a + e.amount, 0);
+      return '<div class="card pcard" data-k="p-' + t + '-' + esc(n) + '"><div class="phead"><b>' + esc(n) + '</b><span class="amt ' + t + ' num">' + mny(tot) + '</span></div><div>' + es.map(e => debtRow(e, today)).join('') + '</div>' +
+        (t === 'in' ? '<div class="pfoot"><button class="btn sm ghost" data-act="remind" data-who="' + esc(n) + '">Напомнить об оплате</button></div>' : '') + '</div>';
+    }).join('');
+  };
+  return '<div class="dsum"><div class="card g"><small>Мне должны</small><strong>' + mny(sum('in')) + '</strong></div><div class="card r"><small>Я должен</small><strong>' + mny(sum('out')) + '</strong></div></div>' +
+    (swipeHintOn() ? '<div class="hintcard"><span>Свайп вправо по долгу: оплачено. Оплаченное попадёт в доход или расход сегодняшним днём.</span><button data-act="hideHints">Понятно</button></div>' : '') +
+    part('in', 'Мне должны') + part('out', 'Я должен');
+}
+function payDebt(e, amount) {
+  const p = P(), snap = JSON.parse(JSON.stringify(e)); let extra = null, now = todayISO();
+  if (amount > 0 && amount < e.amount - 0.004) {
+    extra = { id: uid(), type: e.type, amount, title: e.title + ' (часть)', cat: e.cat || '', date: now, note: e.who ? e.who : '', unpaid: false, who: '' };
+    p.ledger.push(extra); e.amount = Math.round((e.amount - amount) * 100) / 100;
+  } else { e.since = e.since || e.date; e.date = now; e.unpaid = false; }
+  save();
+  return () => { Object.keys(e).forEach(k => { if (!(k in snap)) delete e[k]; }); Object.assign(e, snap); if (extra) { const i = p.ledger.findIndex(x => x.id === extra.id); if (i >= 0) p.ledger.splice(i, 1); } save(); render(); };
+}
+function partSheet(id) {
+  const p = P(), e = p.ledger.find(x => x.id === id); if (!e) return;
+  sheet(head('Часть оплаты') + '<p class="muted" style="margin:0 0 12px">' + esc(e.who || e.title) + ' · осталось ' + money(e.amount) + '</p><label class="f"><span>Сколько оплатили, ₽</span><input id="pp-amt" class="big" inputmode="decimal" placeholder="0" autocomplete="off"></label><p class="err" id="pp-err"></p><div class="actions"><button class="btn primary" id="pp-ok" type="button">Записать оплату</button></div>',
+    (el, close) => {
+      const inp = el.querySelector('#pp-amt'); inp.focus();
+      const go = () => { const a = num(inp.value); if (a <= 0) { el.querySelector('#pp-err').textContent = 'Введите сумму больше нуля.'; return; } const undo = payDebt(e, a); close(); render(); buzz(10); toast(a >= e.amount + a - 0.004 ? 'Оплата записана' : 'Часть оплаты записана', undo); };
+      el.querySelector('#pp-ok').addEventListener('click', go); inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+    });
+}
 function opRow(e) {
   const ra = e.unpaid ? { t: 'Оплачено', c: 'var(--gain)', i: 'check' } : { t: 'Дубль на сегодня', c: 'var(--accent)', i: 'dup' };
   const la = { t: 'Удалить', c: 'var(--loss)', i: 'trash' };
-  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + (e.unpaid ? '<span class="badge">не оплачено</span>' : '') + '</b><span>' + esc([e.cat, e.note].filter(Boolean).join(' · ') || ' ') + '</span></span><span class="amt ' + e.type + '">' + (e.type === 'in' ? '+' : '−') + mfmt(e.amount) + ' ₽</span></button>';
+  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + (e.unpaid ? '<span class="pill ' + e.type + '">' + (e.type === 'in' ? 'должны вам' : 'вы должны') + '</span>' : '') + '</b><span>' + esc((e.unpaid && e.who ? [e.who, e.cat] : [e.cat, e.note]).filter(Boolean).join(' · ') || ' ') + '</span></span>' + (e.unpaid ? '<span class="amt pend">' + mfmt(e.amount) + ' ₽</span>' : '<span class="amt ' + e.type + '">' + (e.type === 'in' ? '+' : '−') + mfmt(e.amount) + ' ₽</span>') + '</button>';
   return swRow('op', e.id, ra, la, inner, 'rowwrap');
 }
 function ledListHTML(p) {
   let ent = p.ledger.filter(e => e.date.slice(0, 7) === ui.month);
-  if (ui.lf === 'in') ent = ent.filter(e => e.type === 'in'); else if (ui.lf === 'out') ent = ent.filter(e => e.type === 'out'); else if (ui.lf === 'debt') ent = ent.filter(e => e.unpaid);
+  if (ui.lf === 'in') ent = ent.filter(e => e.type === 'in'); else if (ui.lf === 'out') ent = ent.filter(e => e.type === 'out'); 
   const q = ui.lq.trim().toLowerCase();
   if (q) ent = ent.filter(e => (e.title + ' ' + e.cat + ' ' + e.note + ' ' + e.who).toLowerCase().indexOf(q) >= 0);
   const groups = {}; ent.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
@@ -1230,13 +1532,15 @@ function vLedger(p) {
   const uIn = unpaid.filter(e => e.type === 'in').reduce((a, e) => a + e.amount, 0), uOut = unpaid.filter(e => e.type === 'out').reduce((a, e) => a + e.amount, 0);
   const cats = p.flags.cats ? catBreakdown(p, m, 'out') : { total: 0, list: [] };
   const quick = p.flags.quick ? quickList(p) : [];
-  const FIL = [['all', 'Все'], ['in', 'Доходы'], ['out', 'Расходы'], ['debt', 'Долги']];
-  return '<div class="monthnav" data-nav="month"><button class="icon-btn" data-act="monthPrev" aria-label="Прошлый месяц">' + ic('left') + '</button><h2 style="text-transform:capitalize">' + MONTHS[my[1] - 1] + ' ' + my[0] + '</h2><button class="icon-btn" data-act="monthNext" aria-label="Следующий месяц">' + ic('right') + '</button></div>' +
+  const FIL = [['all', 'Все'], ['in', 'Доходы'], ['out', 'Расходы']]; if (ui.lf === 'debt') ui.lf = 'all';
+  const seg = p.flags.debts ? '<div class="seg" style="margin:0" data-k="ledseg"><button data-act="ledTab" data-v="ops" aria-pressed="' + (ui.led !== 'debts') + '">Операции</button><button data-act="ledTab" data-v="debts" aria-pressed="' + (ui.led === 'debts') + '">Долги' + (unpaid.length ? ' · ' + unpaid.length : '') + '</button></div>' : '';
+  if (ui.led === 'debts' && p.flags.debts) return seg + vDebts(p);
+  return seg + '<div class="monthnav" data-nav="month"><button class="icon-btn" data-act="monthPrev" aria-label="Прошлый месяц">' + ic('left') + '</button><h2 style="text-transform:capitalize">' + MONTHS[my[1] - 1] + ' ' + my[0] + '</h2><button class="icon-btn" data-act="monthNext" aria-label="Следующий месяц">' + ic('right') + '</button></div>' +
     '<div class="stats"><div class="stat"><small><i style="background:var(--gain)"></i>Доход</small><strong>' + mny(s.inn) + '</strong></div><div class="stat"><small><i style="background:var(--loss)"></i>Расход</small><strong>' + mny(s.out) + '</strong></div><div class="stat profit' + (profit < 0 ? ' neg' : '') + '"><small>Прибыль</small><strong>' + (profit < 0 && !hideOn() ? '−' : '') + mny(Math.abs(profit)) + '</strong></div></div>' +
     (quick.length ? '<div><div class="muted small" style="margin:0 0 6px 2px">Быстрая запись одним нажатием</div><div class="quick">' + quick.map((o, i) => '<button class="chip" data-act="quickAdd" data-i="' + i + '">' + esc(o.title) + ' <small>' + (o.last.type === 'in' ? '+' : '−') + mfmt(o.last.amount) + '</small></button>').join('') + '</div></div>' : '') +
     (p.flags.chart && hasMonth ? '<div class="card"><h3 class="card-title">По дням</h3>' + chartSVG(s) + '</div>' : '') +
     (cats.list.length ? '<div class="card"><h3 class="card-title">Куда уходят деньги</h3>' + cats.list.slice(0, 5).map(c => '<div class="cat"><span>' + esc(c.cat) + '</span><span class="num muted">' + mfmt(c.sum) + ' ₽ · ' + Math.round(c.sum / cats.total * 100) + '%</span><div class="bar"><i style="width:' + Math.max(3, Math.round(c.sum / cats.total * 100)) + '%"></i></div></div>').join('') + '</div>' : '') +
-    (unpaid.length ? '<div class="card"><h3 class="card-title">Долги' + (uIn ? ' · вам должны ' + mny(uIn) : '') + (uOut ? ' · вы должны ' + mny(uOut) : '') + '</h3>' + unpaid.slice(0, 5).map(e => '<div class="debt"><div class="who"><b>' + esc(e.who || e.title) + '</b><span class="muted small">' + esc(e.who ? e.title : '') + (e.who ? ' · ' : '') + (e.type === 'in' ? 'должны вам' : 'вы должны') + '</span></div><span class="amt ' + e.type + '">' + mny(e.amount) + '</span><button class="btn sm" data-act="markPaid" data-id="' + e.id + '">Оплачено</button></div>').join('') + (unpaid.length > 5 ? '<p class="muted small" style="margin:8px 0 0">Ещё ' + (unpaid.length - 5) + ' в списке ниже.</p>' : '') + '<p class="muted small" style="margin:10px 0 0">Долги не входят в доход и расход, пока их не отметят оплаченными.</p></div>' : '') +
+    (unpaid.length ? '<button class="pendstrip" data-act="openDebts"><span><b>Ждут оплаты</b>' + (uIn ? 'вам должны ' + mny(uIn) : '') + (uIn && uOut ? ' · ' : '') + (uOut ? 'вы должны ' + mny(uOut) : '') + '</span>' + ic('right', 18) + '</button>' : '') +
     '<div class="filters"><input class="search" id="ledq" type="search" placeholder="Поиск по записям" autocomplete="off" value="' + esc(ui.lq) + '"></div>' +
     '<div class="seg" style="margin:0">' + FIL.map(f => '<button data-act="setLF" data-v="' + f[0] + '" aria-pressed="' + (ui.lf === f[0]) + '">' + f[1] + '</button>').join('') + '</div>' +
     (swipeHintOn() && hasMonth ? '<div class="hintcard"><span>Свайп влево по записи: удалить. Вправо: дублировать на сегодня или отметить оплату.</span><button data-act="hideHints">Понятно</button></div>' : '') +
@@ -1274,7 +1578,7 @@ function calcTotals() {
 function noteCard(n) {
   const st = noteStats(n);
   const prev = n.body.trim().split('\n').slice(0, 4).map(l => l.replace(/^☐ /, '○ ').replace(/^☑ /, '● ')).join('\n').slice(0, 200);
-  const inner = '<button class="ncard" data-act="editNote" data-id="' + n.id + '"><b>' + (n.pinned ? ic('pin', 15) : '') + esc(n.title || 'Без названия') + '</b>' +
+  const inner = '<button class="ncard" data-act="editNote" data-id="' + n.id + '"><b>' + (n.pinned ? ic('pin', 15) : '') + esc(n.title || (n.body.trim().split('\n')[0] || '').replace(/^(☐|☑|•|#{1,2}) /, '').slice(0, 60) || 'Без названия') + '</b>' +
     (prev ? '<p>' + esc(prev) + '</p>' : '') +
     (st.tasks ? '<div class="prog" role="img" aria-label="Сделано ' + st.done + ' из ' + st.tasks + '"><i style="width:' + Math.round(st.done / st.tasks * 100) + '%"></i></div>' : '') +
     (st.tags.length ? '<div class="minitags">' + st.tags.slice(0, 3).map(t => '<span>#' + esc(t) + '</span>').join('') + '</div>' : '') +
@@ -1288,7 +1592,14 @@ function noteListHTML(p) {
   else list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updated - a.updated);
   if (!list.length) return '<div class="card empty" style="grid-column:1/-1"><b>' + (s || ui.ntag ? 'Ничего не найдено' : 'Блокнот пуст') + '</b>' + (s || ui.ntag ? 'Попробуйте другое слово или тег.' : 'Записывайте цены, договорённости, списки. Теги в виде #слово собираются сами.') + '</div>';
   const pin = list.filter(n => n.pinned), rest = list.filter(n => !n.pinned);
-  return (pin.length && rest.length ? '<div class="ghead">Закреплённые</div>' : '') + pin.map(noteCard).join('') + (pin.length && rest.length ? '<div class="ghead">Остальные</div>' : '') + rest.map(noteCard).join('');
+  let out = '';
+  if (pin.length) out += '<div class="ghead">Закреплённые</div>' + pin.map(noteCard).join('');
+  if (S.settings.notesSort === 'name') out += (pin.length && rest.length ? '<div class="ghead">Остальные</div>' : '') + rest.map(noteCard).join('');
+  else {
+    const t = todayISO(), bucket = n => { const d = iso(new Date(n.updated)), g = dayGap(d, t); if (g <= 0) return [0, 'Сегодня']; if (g === 1) return [1, 'Вчера']; if (g <= 7) return [2, 'Последние 7 дней']; if (g <= 30) return [3, 'Последние 30 дней']; const dt = new Date(n.updated); return [4 + (9999 - dt.getFullYear()) * 12 + (11 - dt.getMonth()), MONTHS[dt.getMonth()].charAt(0).toUpperCase() + MONTHS[dt.getMonth()].slice(1) + (dt.getFullYear() !== new Date().getFullYear() ? ' ' + dt.getFullYear() : '')]; };
+    let last = null; rest.forEach(n => { const b = bucket(n); if (b[1] !== last) { out += '<div class="ghead">' + b[1] + '</div>'; last = b[1]; } out += noteCard(n); });
+  }
+  return out + '<div class="notecount" style="grid-column:1/-1">' + list.length + ' ' + plural(list.length, ['заметка', 'заметки', 'заметок']) + '</div>';
 }
 function vNotes(p) {
   const counts = {}; p.notes.forEach(n => noteStats(n).tags.forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
@@ -1355,7 +1666,7 @@ function findings(I) {
 }
 function headline(I, F) {
   const sub = (F.find(x => x.p) || F[0] || {}).t || '';
-  if (I.entries < 3) return { h: V('Тишина перед первой записью', 'Данных пока мало'), s: V('Внесите несколько операций, и дефтер начнёт делать выводы.', 'Внесите несколько операций, чтобы появились выводы.') };
+  if (I.entries < 3) return { h: V('Тишина перед первой записью', 'Данных пока мало'), s: V('Внесите несколько операций, и Темп начнёт делать выводы.', 'Внесите несколько операций, чтобы появились выводы.') };
   if (I.goal > 0 && I.profit >= I.goal) return { h: V('Цель месяца взята', 'Цель месяца выполнена'), s: sub };
   if (I.profit < 0) return { h: V('Месяц в минусе: время считать точнее', 'Месяц пока в минусе'), s: sub };
   if (I.forecast != null && I.pProfit > 0) {
@@ -1408,7 +1719,7 @@ function vInsights(p) {
     (I.goal > 0 ? '<div class="meter" style="margin-top:12px" role="img" aria-label="Цель выполнена на ' + Math.max(0, Math.min(100, Math.round(I.profit / I.goal * 100))) + '%"><i style="width:' + Math.max(0, Math.min(100, I.profit / I.goal * 100)) + '%"></i></div><div class="muted small" style="margin-top:6px">Цель ' + mny(I.goal) + '</div>' : '') +
     '<div style="margin-top:14px">' + monthsSVG(M, I.m) + '</div>' +
     (I.goalSuggest > 0 && I.goalSuggest !== I.goal ? '<div class="note-box" style="margin-top:12px"><span>' + V('Три последних полных месяца дали в среднем ', 'Средняя прибыль за три последних месяца: ') + mny(Math.round(I.avg3)) + '. Цель с запасом на десять процентов: ' + mny(I.goalSuggest) + '.</span><button class="btn sm primary" style="margin-top:10px" data-act="setGoal" data-v="' + I.goalSuggest + '">Поставить ' + mny(I.goalSuggest) + '</button></div>' : '') + '</div>';
-  out += '<div class="card"><h3 class="card-title">' + V('Что показывают цифры', 'Выводы') + '</h3>' + (F.length ? F.map(x => '<div class="fnd ' + x.k + '"><i></i><span>' + esc(x.t) + '</span></div>').join('') : '<p class="muted" style="margin:0">' + V('Выводы вырастут из записей. Пара операций, и дефтер начнёт говорить.', 'Пока нечего сравнивать. Внесите операции и задачи.') + '</p>') + '</div>';
+  out += '<div class="card"><h3 class="card-title">' + V('Что показывают цифры', 'Выводы') + '</h3>' + (F.length ? F.map(x => '<div class="fnd ' + x.k + '"><i></i><span>' + esc(x.t) + '</span></div>').join('') : '<p class="muted" style="margin:0">' + V('Выводы вырастут из записей. Пара операций, и Темп начнёт говорить.', 'Пока нечего сравнивать. Внесите операции и задачи.') + '</p>') + '</div>';
   out += '<div class="card"><div class="sec-head"><h3 class="card-title">' + V('Три слота недели', 'Фокус недели') + '</h3><span class="muted small">' + plan.filter(x => x.done).length + ' из ' + plan.length + '</span></div>' +
     (plan.length ? '<div class="tasks">' + plan.map(x => focusRow(x, ws)).join('') + '</div>' : '<p class="muted small" style="margin:0 0 4px">' + V('Три главные вещи, ради которых неделя состоится. Как слоты в инвентаре: больше не влезет, и это хорошо.', 'Не больше трёх главных целей на эту неделю.') + '</p>') +
     (plan.length < 3 ? '<div class="addrow"><input id="f-new" maxlength="80" autocomplete="off" placeholder="Что главное на этой неделе?"><button class="btn primary" data-act="addFocus">Добавить</button></div>' : '<p class="muted small" style="margin:10px 0 0">' + V('Все слоты заняты. Теперь только играть.', 'Три цели выбраны.') + '</p>') +
@@ -1461,7 +1772,16 @@ function sw(path, label, sub, checked, disabled) {
 function vSettings(p) {
   const m = p.modules, f = p.flags, st = S.settings, pr = S.profile, dark = isDark();
   const sOff = !st.swipes;
-  return (p.example ? '<div class="note-box">В проекте примерные данные. Посмотрите, как всё работает, а потом удалите проект или очистите записи.</div>' : '') +
+  const gateLbl = { bio: 'Face ID / Touch ID', pin: 'Код из 4 цифр', none: 'Без защиты', password: 'Только пароль' };
+  const gcur = prefs.gate || 'password', stale = bkAge() === null || bkAge() >= 7;
+  const securityCards = session.demo ? '' :
+    '<div class="card stack"><h3 class="card-title" style="margin:0">Вход</h3><div class="seg" style="margin:0">' + [bioAvail ? ['bio', 'Face ID'] : null, ['pin', 'Код'], ['none', 'Без защиты'], ['password', 'Пароль']].filter(Boolean).map(a => '<button data-act="setGate" data-v="' + a[0] + '" aria-pressed="' + (gcur === a[0]) + '">' + a[1] + '</button>').join('') + '</div>' +
+    '<p class="muted small" style="margin:0">' + ({ bio: 'Темп открывается по Face ID или Touch ID. Пароль нужен только на новом телефоне.', pin: 'Темп открывается по коду. Пароль нужен только на новом телефоне.', none: 'Темп открывается сразу. Данные всё равно зашифрованы на устройстве.', password: 'Пароль спрашивается при каждом открытии. Включите Face ID или код, чтобы открывать быстрее.' })[gcur] + '</p>' + (gcur === 'pin' ? '<button class="btn" data-act="changePin">Сменить код</button>' : '') + '</div>' +
+    '<div class="card stack"><h3 class="card-title" style="margin:0">Копии и обновления</h3><div class="bk-status' + (stale ? ' warn' : '') + '">' + bkLabel() + '</div>' +
+    '<button class="btn primary" data-act="saveBackup">Сохранить копию</button><p class="muted small" style="margin:0">Откроется меню «Поделиться»: выберите «Сохранить в Файлы» или отправьте файл себе в Telegram. Копия зашифрована вашим паролем.</p>' +
+    '<button class="btn" data-act="restoreFile">Восстановить из файла</button><button class="btn" data-act="snaps">Автокопии на этом телефоне</button>' +
+    '<div class="vrow"><span>Версия ' + esc(APP_VERSION.slice(0, 7)) + (updateReady ? ' · есть новая' : '') + '</span><button class="linkbtn" style="min-height:0;padding:0" data-act="checkUpdate">' + (updateReady ? 'Обновить' : 'Проверить обновления') + '</button></div></div>';
+  return securityCards + (p.example ? '<div class="note-box">В проекте примерные данные. Посмотрите, как всё работает, а потом удалите проект или очистите записи.</div>' : '') +
     '<div class="card"><h3 class="card-title">Профиль</h3><div class="two-in"><label class="f"><span>Имя</span><input id="s-pname" autocomplete="off" maxlength="24" value="' + esc(pr.name) + '"></label><label class="f"><span>Символ</span><input id="s-psym" autocomplete="off" maxlength="2" value="' + esc(pr.sym) + '"></label><label class="f"><span>Номер</span><input id="s-pno" inputmode="numeric" maxlength="3" value="' + esc(pr.no) + '"></label></div><label class="f" style="margin:10px 0 0"><span>Атомная масса (подпись на плитке)</span><input id="s-pmass" autocomplete="off" maxlength="8" value="' + esc(pr.mass) + '"></label></div>' +
     '<div class="card"><h3 class="card-title">Оформление</h3><div class="seg" style="margin-bottom:14px">' + [['auto', 'Как в системе'], ['light', 'Светлая'], ['dark', 'Тёмная']].map(a => '<button data-act="theme" data-v="' + a[0] + '" aria-pressed="' + (prefs.theme === a[0]) + '">' + a[1] + '</button>').join('') + '</div><div class="pals">' + Object.keys(PAL).map(k => '<button class="pal" data-act="setAccent" data-v="' + k + '" style="--pc:' + (dark ? PAL[k].d[0] : PAL[k].l[0]) + '" aria-pressed="' + (prefs.accent === k) + '"><i></i>' + PAL[k].n + '</button>').join('') + '</div></div>' +
     '<div class="card"><h3 class="card-title">Жесты</h3>' + sw('set.swipes', 'Свайпы', 'Быстрые действия движением пальца', st.swipes) +
@@ -1477,37 +1797,94 @@ function vSettings(p) {
     '<div class="card stack"><h3 class="card-title" style="margin:0">О приложении</h3><p class="muted small" style="margin:0">' + (isStandalone() ? 'Установлено как приложение. Работает без интернета.' : 'Сейчас открыто в браузере. Чтобы приложение открывалось с иконки, добавьте его на экран «Домой».') + '</p><a class="btn" href="legal.html" target="_blank" rel="noopener">Условия и конфиденциальность</a></div>' +
     '<div class="card"><h3 class="card-title">Скоро</h3>' + sw('x1', 'Налоги и отчётность', 'Расчёт взносов и налогов по вашему режиму', false, true) + sw('x2', 'Маркировка и ветдокументы', 'Честный знак, Меркурий', false, true) + '</div>' +
     '<div class="card stack"><h3 class="card-title" style="margin:0">Защита данных</h3><p class="muted small" style="margin:0">Записи шифруются на этом устройстве ключом из вашего пароля (AES-256). В хранилище лежит только шифротекст, поэтому без пароля или ключа восстановления его не прочитает никто, включая нас. Это значит, что восстановить забытый пароль мы не сможем.</p>' +
-    (session.demo ? '<p class="muted small" style="margin:0">В демо-режиме пароль не нужен и данные не сохраняются.</p>' : '<button class="btn" data-act="changePass">Сменить пароль</button><button class="btn" data-act="newRecovery">Новый ключ восстановления</button><button class="btn" data-act="backup">Резервная копия</button>') +
+    (session.demo ? '<p class="muted small" style="margin:0">В демо-режиме пароль не нужен и данные не сохраняются.</p>' : '<button class="btn" data-act="changePass">Сменить пароль</button><button class="btn" data-act="newRecovery">Новый ключ восстановления</button>') +
     '<button class="btn" data-act="lock">' + ic('lock', 18) + (session.demo ? 'Выйти из демо' : 'Заблокировать') + '</button></div>' +
     '<div class="card stack"><h3 class="card-title" style="margin:0">Проекты</h3><button class="btn" data-act="projects">Все проекты и новый проект</button>' + (S.projects.length > 1 ? '<button class="btn danger" data-act="delProject">Удалить этот проект</button>' : '') + '</div>';
 }
 
 /* ---------- main render ---------- */
 const TABS = [['home', 'Главная', 'home', 'home'], ['today', 'Сегодня', 'today', 'planner'], ['ledger', 'Учёт', 'ledger', 'ledger'], ['calc', 'Прайс', 'calc', 'calc'], ['insights', 'Итоги', 'insights', 'insights'], ['notes', 'Заметки', 'notes', 'notes'], ['settings', 'Ещё', 'settings', null]];
+
+/* ---------- keyed DOM morph: обновляем только то, что изменилось ---------- */
+const keyOf = n => n.nodeType === 1 ? (n.getAttribute('data-k') || (n.dataset && n.dataset.sw ? n.dataset.sw + ':' + n.dataset.id + (n.dataset.day || '') : '') || n.id || '') : '';
+function patchEl(a, b) {
+  const ab = a.attributes, bb = b.attributes;
+  for (let i = ab.length - 1; i >= 0; i--) { const n = ab[i].name; if (!b.hasAttribute(n)) a.removeAttribute(n); }
+  for (let i = 0; i < bb.length; i++) { const n = bb[i].name, v = bb[i].value; if (a.getAttribute(n) !== v) a.setAttribute(n, v); }
+  const tg = a.tagName, foc = a === document.activeElement;
+  if (tg === 'INPUT') { if (!foc) { if (a.type === 'checkbox' || a.type === 'radio') a.checked = b.hasAttribute('checked'); else if (a.value !== b.value) a.value = b.value; } return; }
+  if (tg === 'TEXTAREA') { if (!foc && a.value !== b.value) a.value = b.value; return; }
+  syncKids(a, b);
+  if (tg === 'SELECT' && !foc) a.value = b.value;
+}
+function patchNode(a, b) {
+  if (a.nodeType === 3 || a.nodeType === 8) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return a; }
+  patchEl(a, b); return a;
+}
+function syncKids(a, b) {
+  const keyed = new Map(), free = [];
+  a.childNodes.forEach(n => { const k = keyOf(n); if (k) keyed.set(k, n); else free.push(n); });
+  let fi = 0; const out = [];
+  Array.from(b.childNodes).forEach(nb => {
+    const k = keyOf(nb); let na = null;
+    if (k) { na = keyed.get(k) || null; if (na && na.nodeName !== nb.nodeName) na = null; if (na) keyed.delete(k); }
+    else { const c = free[fi]; if (c && c.nodeType === nb.nodeType && c.nodeName === nb.nodeName) { na = c; fi++; } }
+    out.push(na ? patchNode(na, nb) : nb);
+  });
+  let ref = a.firstChild;
+  out.forEach(n => { if (n === ref) ref = ref.nextSibling; else a.insertBefore(n, ref); });
+  while (ref) { const nx = ref.nextSibling; a.removeChild(ref); ref = nx; }
+}
+function morph(el, html) { const t = document.createElement('template'); t.innerHTML = html; syncKids(el, t.content); }
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let prevR = null;
+function countUp(root) {
+  root.querySelectorAll('.stat strong,.mini-card strong,.dsum strong,.big-num,.hero .num').forEach(el => {
+    const t = el.textContent.trim(); if (!/^[−-]?[\d\s ]+\s*₽$/.test(t)) return;
+    const neg = /^[−-]/.test(t), v = parseInt(t.replace(/[^\d]/g, ''), 10); if (!v || v < 100) return;
+    const t0 = performance.now(), D = 750;
+    const step = now => { const k = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3); el.textContent = (neg ? '−' : '') + money(Math.round(v * e)); if (k < 1 && el.isConnected) requestAnimationFrame(step); else if (el.isConnected) el.textContent = t; };
+    requestAnimationFrame(step);
+  });
+}
+
 function render() {
-  if (!S || ui.recovery) return renderLock();
+  if (!S || ui.recovery) { prevR = null; return renderLock(); }
+  if (ui.gateSetup && !session.demo) { prevR = null; return renderGate(); }
   const p = P(), tabsEl = $('#tabs'), app = $('#app');
   const tabs = TABS.filter(t => !t[3] || p.modules[t[3]]);
   if (!tabs.some(t => t[0] === ui.tab)) ui.tab = tabs[0][0];
   let view = '', fab = '';
   if (ui.tab === 'home') view = vHome(p);
   else if (ui.tab === 'today') { view = vToday(p); fab = 'addTask'; }
-  else if (ui.tab === 'ledger') { view = vLedger(p); fab = 'addOp'; }
+  else if (ui.tab === 'ledger') { view = vLedger(p); fab = ui.led === 'debts' && p.flags.debts ? 'addDebt' : 'addOp'; }
   else if (ui.tab === 'calc') { view = vCalc(p); fab = 'addItem'; }
   else if (ui.tab === 'insights') view = vInsights(p);
   else if (ui.tab === 'notes') { view = vNotes(p); fab = 'addNote'; }
   else view = vSettings(p);
   const banner = session.demo ? '<div class="banner"><span>Демо: данные не сохраняются.</span><button data-act="toSetup">Создать хранилище</button></div>' : memOnly ? '<div class="banner"><span>Хранилище браузера недоступно. Данные живут, пока открыта страница.</span></div>' : '';
-  app.innerHTML = banner + '<div class="top"><button class="proj-btn" data-act="projects" aria-label="Проекты"><span class="dot" style="--c:' + p.color + '"></span><h1>' + esc(p.name) + '</h1>' + (p.example ? '<span class="tag">пример</span>' : '') + ic('chev', 18) + '</button><button class="icon-btn" data-act="lock" aria-label="Заблокировать">' + ic('lock') + '</button></div>' + view +
+  const html = banner + '<div class="top"><button class="proj-btn" data-act="projects" aria-label="Проекты"><span class="dot" style="--c:' + p.color + '"></span><h1>' + esc(p.name) + '</h1>' + (p.example ? '<span class="tag">пример</span>' : '') + ic('chev', 18) + '</button><button class="icon-btn" data-act="lock" aria-label="Заблокировать">' + ic('lock') + '</button></div><div class="view" data-k="view">' + view + '</div>' +
     (fab ? '<button class="fab" data-act="' + fab + '" aria-label="Добавить">' + ic('plus', 26) + '</button>' : '');
+  const was = prevR, now = { tab: ui.tab, day: ui.day, month: ui.month };
+  const fresh = !was || was.tab !== now.tab || !app.querySelector('.view');
+  if (fresh) app.innerHTML = html; else morph(app, html);
+  prevR = now;
   tabsEl.hidden = false;
-  tabsEl.firstElementChild.innerHTML = tabs.map(t => '<button data-act="tab" data-v="' + t[0] + '"' + (t[0] === ui.tab ? ' aria-current="page"' : '') + '>' + ic(t[2], 22) + '<span>' + t[1] + '</span></button>').join('');
+  morph(tabsEl.firstElementChild, tabs.map(t => '<button data-act="tab" data-v="' + t[0] + '"' + (t[0] === ui.tab ? ' aria-current="page"' : '') + '>' + ic(t[2], 22) + '<span>' + t[1] + '</span></button>').join(''));
   if (ui.tab === 'calc') calcTotals();
+  if (fresh && !reduceMotion()) { const v0 = app.querySelector('.view'); if (v0) { v0.classList.add('enter'); setTimeout(() => v0.classList.remove('enter'), 900); countUp(v0); } }
+  if (was && !reduceMotion()) {
+    const v = (ui.tab === 'today' && was.tab === now.tab && was.day !== now.day && app.querySelector('.dayzone')) || app.querySelector('.view');
+    if (v && v.animate) {
+      if (ui.tab === 'today' && was.day !== now.day) { const d = now.day > was.day ? 1 : -1; v.animate([{ opacity: 0, transform: 'translateX(' + 36 * d + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
+      else if (ui.tab === 'ledger' && was.month !== now.month) { const d = now.month > was.month ? 1 : -1; v.animate([{ opacity: 0, transform: 'translateX(' + 36 * d + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
+    }
+  }
 }
 
 /* ---------- lock screen ---------- */
 function renderLock() {
-  const app = $('#app'); $('#tabs').hidden = true;
+  const app = $('#app'); $('#tabs').hidden = true; $('#toast').hidden = true;
   const raw = load(); let vault = null; try { vault = raw ? JSON.parse(raw) : null; } catch (e) { vault = null; }
   const pr = prefs.persona;
   if (ui.recovery) {
@@ -1517,16 +1894,27 @@ function renderLock() {
     $('#rk-go').addEventListener('click', () => { ui.recovery = null; render(); });
     return;
   }
-  const mode = !vault ? 'setup' : ui.mode === 'forgot' ? 'forgot' : 'unlock';
+  const quick = !!(vault && devReady && prefs.gate && prefs.gate !== 'password' && ui.mode !== 'pw' && ui.mode !== 'forgot');
+  const mode = !vault ? 'setup' : ui.mode === 'forgot' ? 'forgot' : quick ? 'quick' : 'unlock';
   const err = ui.error ? '<p class="err">' + esc(ui.error) + '</p>' : '';
-  const pitch = '<div class="brand">' + tileHTML(pr, true) + '<div><h1>Дефтер</h1><p style="margin-top:8px">' + (mode === 'unlock' ? esc(pr.name) + ', данные зашифрованы на этом устройстве.' : 'Учёт, задачи и блокноты для вашего дела. Всё шифруется на этом устройстве.') + '</p></div></div>';
-  let form = '';
-  if (mode === 'setup') form = '<h2 style="font-size:16px;margin-bottom:14px">Придумайте пароль</h2><label class="f"><span>Пароль, от 8 символов</span><input id="l-p1" type="password" autocomplete="new-password"></label><label class="f"><span>Повторите пароль</span><input id="l-p2" type="password" autocomplete="new-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Шифруем…' : 'Создать хранилище') + '</button><button class="linkbtn" id="l-demo">Сначала посмотреть демо</button>';
-  else if (mode === 'unlock') form = '<h2 style="font-size:16px;margin-bottom:14px">Откройте дефтер</h2><label class="f"><span>Пароль</span><input id="l-p1" type="password" autocomplete="current-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Открываем…' : 'Открыть') + '</button><button class="linkbtn" id="l-forgot">Забыли пароль?</button><button class="linkbtn" id="l-demo">Посмотреть демо</button>';
+  const pitch = '<div class="brand">' + tileHTML(pr, true) + '<div><h1>Темп</h1><p style="margin-top:8px">' + (mode === 'quick' ? greeting(new Date().getHours()) + ', ' + esc(pr.name) : mode === 'unlock' ? esc(pr.name) + ', данные зашифрованы на этом устройстве.' : 'Учёт, задачи и блокноты для вашего дела. Всё шифруется на этом устройстве.') + '</p></div></div>';
+  let form = '', qbox = '';
+  if (mode === 'quick') {
+    if (prefs.gate === 'bio') qbox = '<div class="qbox"><button class="bio-btn" id="q-bio" aria-label="Открыть по Face ID">' + ic('face', 44) + '</button><div class="muted">Открыть по Face ID</div>' + err + '<button class="linkbtn" id="l-pw">Войти по паролю</button></div>';
+    else if (prefs.gate === 'pin') qbox = '<div class="qbox"><div class="pin-dots" id="pin-dots">' + [0, 1, 2, 3].map(i => '<i></i>').join('') + '</div>' + err + '<div class="pad" id="pad">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => '<button data-k="' + n + '">' + n + '</button>').join('') + '<span></span><button data-k="0">0</button><button data-k="del" aria-label="Стереть">' + ic('back', 22) + '</button></div><button class="linkbtn" id="l-pw">Забыли код? Войти по паролю</button></div>';
+    else qbox = '<div class="qbox"><button class="btn primary" id="q-open" style="width:100%">Открыть</button>' + err + '<button class="linkbtn" id="l-pw">Войти по паролю</button></div>';
+  }
+  if (mode === 'setup') form = '<h2 style="font-size:16px;margin-bottom:14px">Придумайте пароль</h2><label class="f"><span>Пароль, от 8 символов</span><input id="l-p1" type="password" autocomplete="new-password"></label><label class="f"><span>Повторите пароль</span><input id="l-p2" type="password" autocomplete="new-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Шифруем…' : 'Создать хранилище') + '</button><button class="linkbtn" id="l-restore">У меня есть файл копии</button><button class="linkbtn" id="l-demo">Сначала посмотреть демо</button>';
+  else if (mode === 'unlock') form = '<h2 style="font-size:16px;margin-bottom:14px">Откройте Темп</h2><label class="f"><span>Пароль</span><input id="l-p1" type="password" autocomplete="current-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Открываем…' : 'Открыть') + '</button><button class="linkbtn" id="l-forgot">Забыли пароль?</button><button class="linkbtn" id="l-restore">У меня есть файл копии</button><button class="linkbtn" id="l-demo">Посмотреть демо</button>';
   else form = '<h2 style="font-size:16px;margin-bottom:14px">Вход по ключу</h2><label class="f"><span>Ключ восстановления</span><input id="l-rk" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"></label><label class="f"><span>Новый пароль, от 8 символов</span><input id="l-p1" type="password" autocomplete="new-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Проверяем…' : 'Войти и сменить пароль') + '</button><button class="linkbtn" id="l-back">Назад</button>';
-  app.innerHTML = '<div class="lock">' + pitch + installHTML(mode) + '<form class="sheetpaper" id="l-form" novalidate>' + form + '</form><a class="legal-link" href="legal.html" target="_blank" rel="noopener">Условия и конфиденциальность</a></div>';
+  app.innerHTML = '<div class="lock">' + pitch + installHTML(mode) + (mode === 'quick' ? qbox : '<form class="sheetpaper" id="l-form" novalidate>' + form + '</form>') + '<a class="legal-link" href="legal.html" target="_blank" rel="noopener">Условия и конфиденциальность</a></div>';
   wireInstall();
-  const enter = u => { S = normalize(u.data); prefs.persona = Object.assign({}, S.profile); savePrefs(); ui.tab = 'home'; ui.day = todayISO(); ui.month = ui.day.slice(0, 7); };
+  const enter = enterSession;
+  const afterPass = async (u, vlt) => {
+    if (!vlt.id) { vlt.id = b64(rnd(9)); store(JSON.stringify(vlt)); }
+    if (prefs.gate && prefs.gate !== 'password') { try { await devEnroll(vlt, u.raw); } catch (e) { /* ignore */ } }
+    else if (!prefs.gate) ui.gateSetup = true;
+  };
   const go = async ev => {
     ev.preventDefault(); if (ui.busy) return;
     const p1 = $('#l-p1') ? $('#l-p1').value : '';
@@ -1536,30 +1924,108 @@ function renderLock() {
         if (p1 !== $('#l-p2').value) throw new Error('Пароли не совпадают.');
         ui.busy = true; ui.error = ''; renderLock();
         S = initialState(); const r = await createVault(p1, S);
-        session = { dk: r.dk, raw: r.raw, vault: r.vault, demo: false }; store(JSON.stringify(r.vault)); ui.recovery = r.recovery; ui.busy = false; ui.tab = 'home'; render();
+        session = { dk: r.dk, raw: r.raw, vault: r.vault, demo: false }; store(JSON.stringify(r.vault)); ui.recovery = r.recovery; ui.busy = false; ui.tab = 'home'; prefs.since = Date.now(); prefs.gate = undefined; savePrefs(); ui.gateSetup = true; ui.gs = null; render();
       } else if (mode === 'unlock') {
         if (!p1) throw new Error('Введите пароль.');
         ui.busy = true; ui.error = ''; renderLock();
         let u; try { u = await unlockVault(vault, p1, false); } catch (e) { ui.busy = false; throw new Error('Пароль не подошёл.'); }
-        session = { dk: u.dk, raw: u.raw, vault, demo: false }; enter(u); ui.busy = false; render();
+        session = { dk: u.dk, raw: u.raw, vault, demo: false }; enter(u); await afterPass(u, vault); ui.busy = false; render();
       } else {
         const rk = $('#l-rk').value;
         if (normRec(rk).length < 24) throw new Error('Ключ состоит из 24 символов.');
         if (p1.length < 8) throw new Error('Новый пароль короче 8 символов.');
         ui.busy = true; ui.error = ''; renderLock();
         let u; try { u = await unlockVault(vault, rk, true); } catch (e) { ui.busy = false; throw new Error('Ключ не подошёл.'); }
-        await rewrapPass(vault, u.raw, p1); session = { dk: u.dk, raw: u.raw, vault, demo: false }; store(JSON.stringify(vault)); enter(u); ui.busy = false; ui.mode = null; render();
+        await rewrapPass(vault, u.raw, p1); session = { dk: u.dk, raw: u.raw, vault, demo: false }; store(JSON.stringify(vault)); enter(u); await afterPass(u, vault); ui.busy = false; ui.mode = null; render();
       }
     } catch (e) { ui.busy = false; ui.error = e.message || 'Не получилось. Попробуйте ещё раз.'; renderLock(); }
   };
-  $('#l-form').addEventListener('submit', go);
-  $('#l-go').addEventListener('click', go);
+  if ($('#l-form')) { $('#l-form').addEventListener('submit', go); $('#l-go').addEventListener('click', go); }
   const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+  const failQuick = m => { ui.error = m; renderLock(); };
+  const tryBio = async silent => { try { await quickOpen(false); } catch (e) { if (!silent) failQuick('Не получилось. Попробуйте ещё раз или войдите по паролю.'); } };
+  on('#q-bio', () => tryBio(false));
+  on('#q-open', async () => { try { await quickOpen(true); } catch (e) { devReady = false; renderLock(); } });
+  on('#l-pw', () => { ui.mode = 'pw'; ui.error = ''; renderLock(); });
+  on('#l-restore', () => pickBackup(v => restoreSheet(v)));
+  if (mode === 'quick' && prefs.gate === 'bio' && ui.autoBio) { ui.autoBio = false; tryBio(true); }
+  if (mode === 'quick' && prefs.gate === 'pin') padWire($('#pad'), $('#pin-dots'), async v => {
+    let ok = false; try { ok = (await pinHash(v, prefs.pinSalt)) === prefs.pinHash; } catch (e) { ok = false; }
+    if (ok) { try { await quickOpen(true); return true; } catch (e) { devReady = false; renderLock(); return true; } }
+    ui.fails++; if (ui.fails >= 5) { ui.mode = 'pw'; ui.error = 'Слишком много попыток. Введите пароль.'; ui.fails = 0; renderLock(); return true; }
+    return false;
+  });
   on('#l-demo', () => { S = initialState(true); session = { dk: null, raw: null, vault: null, demo: true }; ui.error = ''; ui.tab = 'home'; render(); });
   on('#l-forgot', () => { ui.mode = 'forgot'; ui.error = ''; renderLock(); });
   on('#l-back', () => { ui.mode = null; ui.error = ''; renderLock(); });
 }
 function selectNode(n) { try { const r = document.createRange(); r.selectNodeContents(n); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) { /* ignore */ } }
+
+
+/* ---------- цифровая клавиатура ---------- */
+const padHTML = () => '<div class="pad" id="pad">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => '<button type="button" data-k="' + n + '">' + n + '</button>').join('') + '<span></span><button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Стереть">' + ic('back', 22) + '</button></div>';
+function padWire(pad, dots, onDone) {
+  if (!pad) return; let v = '', busy = false;
+  const paint = () => dots.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i < v.length));
+  const press = async k => {
+    if (busy) return;
+    if (k === 'del') { v = v.slice(0, -1); paint(); return; }
+    if (v.length >= 4) return; v += k; paint(); buzz(6);
+    if (v.length === 4) {
+      busy = true; const ok = await onDone(v); busy = false;
+      if (ok === false) { buzz(30); dots.classList.remove('shake'); void dots.offsetWidth; dots.classList.add('shake'); setTimeout(() => { v = ''; paint(); }, 350); } else if (ok === 'reset') { v = ''; paint(); }
+    }
+  };
+  pad.addEventListener('pointerdown', ev => { const b = ev.target.closest('[data-k]'); if (b) ev.preventDefault(); });
+  pad.addEventListener('click', ev => { const b = ev.target.closest('[data-k]'); if (b) press(b.dataset.k); });
+  const kd = ev => { if (!pad.isConnected) { document.removeEventListener('keydown', kd); return; } if (/^\d$/.test(ev.key)) press(ev.key); else if (ev.key === 'Backspace') press('del'); };
+  document.addEventListener('keydown', kd);
+}
+async function applyGate(g, pin) {
+  if (g === 'bio') prefs.credId = await bioCreate();
+  if (g === 'pin') { prefs.pinSalt = b64(rnd(12)); prefs.pinHash = await pinHash(pin, prefs.pinSalt); }
+  if (g !== 'password') await devEnroll(session.vault, session.raw); else await devClear();
+  prefs.gate = g; savePrefs();
+}
+function renderGate() {
+  const app = $('#app'); $('#tabs').hidden = true;
+  const gs = ui.gs || (ui.gs = { c: bioAvail ? 'bio' : 'pin', step: 'choose', p1: '', err: '' });
+  const opt = (k, t, d, ico) => '<button class="gopt" data-g="' + k + '" aria-pressed="' + (gs.c === k) + '"><span class="gi">' + ic(ico, 26) + '</span><span><b>' + t + '</b><small>' + d + '</small></span></button>';
+  const err = gs.err ? '<p class="err" style="text-align:center">' + esc(gs.err) + '</p>' : '';
+  if (gs.step === 'choose') {
+    app.innerHTML = '<div class="lock"><div class="brand"><h1>Как входить?</h1><p>Пароль понадобится только на новом телефоне. Здесь можно открывать быстрее.</p></div><div class="stack">' +
+      (bioAvail ? opt('bio', 'Face ID / Touch ID', 'Открывается взглядом или пальцем', 'face') : '') + opt('pin', 'Код из 4 цифр', 'Быстро и привычно', 'keypad') + opt('none', 'Без защиты', 'Открывается сразу, если телефон и так под паролем', 'unlock') + '</div>' + err +
+      '<button class="btn primary" id="g-go" style="width:100%">Продолжить</button><button class="linkbtn" id="g-pw" style="text-align:center">Оставить только пароль</button></div>';
+    app.querySelectorAll('.gopt').forEach(b => b.addEventListener('click', () => { gs.c = b.dataset.g; gs.err = ''; renderGate(); }));
+    const finish = async g => { await applyGate(g); ui.gateSetup = false; ui.gs = null; render(); toast(g === 'none' ? 'Готово: Темп открывается сразу' : g === 'password' ? 'Готово: вход только по паролю' : 'Готово: вход настроен'); };
+    $('#g-pw').addEventListener('click', () => finish('password').catch(() => { ui.gateSetup = false; render(); }));
+    $('#g-go').addEventListener('click', async () => {
+      if (gs.c === 'pin') { gs.step = 'pin1'; gs.err = ''; renderGate(); return; }
+      try { await finish(gs.c); } catch (e) { gs.err = gs.c === 'bio' ? 'Face ID не включился. Выберите код или попробуйте ещё раз.' : 'Не получилось. Попробуйте другой вариант.'; renderGate(); }
+    });
+    return;
+  }
+  app.innerHTML = '<div class="lock"><div class="brand"><h1>' + (gs.step === 'pin1' ? 'Придумайте код' : 'Повторите код') + '</h1><p>' + (gs.step === 'pin1' ? 'Четыре цифры. Забудете, войдёте по паролю.' : 'Ещё раз, чтобы не ошибиться.') + '</p></div><div class="qbox"><div class="pin-dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>' + err + padHTML() + '<button class="linkbtn" id="g-back">Назад</button></div></div>';
+  $('#g-back').addEventListener('click', () => { gs.step = 'choose'; gs.p1 = ''; gs.err = ''; renderGate(); });
+  padWire($('#pad'), $('#pin-dots'), async v => {
+    if (gs.step === 'pin1') { gs.p1 = v; gs.step = 'pin2'; gs.err = ''; renderGate(); return true; }
+    if (v !== gs.p1) { gs.step = 'pin1'; gs.p1 = ''; gs.err = 'Коды не совпали. Начнём заново.'; renderGate(); return true; }
+    try { await applyGate('pin', v); ui.gateSetup = false; ui.gs = null; render(); toast('Готово: вход по коду'); } catch (e) { gs.step = 'choose'; gs.err = 'Не получилось сохранить код.'; renderGate(); }
+    return true;
+  });
+}
+function pinSheet() {
+  let step = 1, p1 = '';
+  sheet(head('Новый код') + '<div class="qbox"><p class="muted" id="ps-t" style="margin:0">Придумайте код из 4 цифр</p><div class="pin-dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>' + padHTML() + '</div>',
+    (el, close) => {
+      padWire(el.querySelector('#pad'), el.querySelector('#pin-dots'), async v => {
+        if (step === 1) { p1 = v; step = 2; el.querySelector('#ps-t').textContent = 'Повторите код'; return 'reset'; }
+        if (v !== p1) { step = 1; p1 = ''; el.querySelector('#ps-t').textContent = 'Не совпало. Придумайте код ещё раз'; return false; }
+        try { await applyGate('pin', v); close(); render(); toast('Код сохранён'); } catch (e) { toast('Не получилось сохранить код'); }
+        return true;
+      });
+    });
+}
 
 /* ---------- security sheets ---------- */
 function passSheet() {
@@ -1583,21 +2049,6 @@ function recoverySheet() {
       });
     });
 }
-function backupSheet() {
-  sheet(head('Резервная копия') + '<p class="muted small">Копия зашифрована, прочитать её можно только с вашим паролем. Вставьте её в заметки или отправьте себе. Чтобы восстановить, вставьте копию ниже.</p><div class="stack"><button class="btn" id="bk-copy">Скопировать зашифрованную копию</button><label class="f" style="margin:6px 0 0"><span>Восстановить из копии</span><textarea id="bk-in" class="copybox" placeholder="Вставьте копию сюда"></textarea></label><p class="err" id="bk-err"></p><button class="btn danger" id="bk-restore">Заменить данные копией</button></div>',
-    (el, close) => {
-      const g = s => el.querySelector(s);
-      g('#bk-copy').addEventListener('click', async () => {
-        await persist(); const txt = JSON.stringify(session.vault);
-        try { await navigator.clipboard.writeText(txt); g('#bk-copy').textContent = 'Скопировано'; }
-        catch (e) { g('#bk-in').value = txt; g('#bk-in').select(); g('#bk-copy').textContent = 'Скопируйте текст из поля ниже'; }
-      });
-      g('#bk-restore').addEventListener('click', () => {
-        try { const v = JSON.parse(g('#bk-in').value.trim()); if (!v || v.v !== 1 || !v.d || !v.wp || !v.sP) throw 0; store(JSON.stringify(v)); clearTimeout(timer); S = null; session = { dk: null, raw: null, vault: null, demo: false }; ui.mode = null; close(); render(); }
-        catch (e) { g('#bk-err').textContent = 'Это не похоже на копию Дефтера.'; }
-      });
-    });
-}
 function copySheet(text) {
   sheet(head('Скопируйте таблицу') + '<p class="muted small">Автоматическое копирование недоступно. Выделите текст и скопируйте вручную, потом вставьте в Excel или Google Таблицы.</p><textarea class="copybox" id="cp-t" style="min-height:220px" readonly></textarea>',
     el => { const t = el.querySelector('#cp-t'); t.value = text; setTimeout(() => { t.focus(); t.select(); }, 50); });
@@ -1605,6 +2056,22 @@ function copySheet(text) {
 
 /* ---------- actions ---------- */
 const A = {
+  saveBackup: () => saveBackup(),
+  snoozeBackup: () => { prefs.bkSnooze = Date.now() + 3 * 864e5; savePrefs(); render(); },
+  restoreFile: () => pickBackup(v => restoreSheet(v)),
+  snaps: () => snapsSheet(),
+  changePin: () => pinSheet(),
+  setGate: async b => {
+    const g = b.dataset.v; if (g === (prefs.gate || 'password')) return;
+    if (g === 'pin') { pinSheet(); return; }
+    try { await applyGate(g); render(); toast(g === 'bio' ? 'Вход по Face ID включён' : g === 'none' ? 'Темп открывается сразу' : 'Вход только по паролю'); } catch (e) { toast('Не получилось. Попробуйте ещё раз'); render(); }
+  },
+  checkUpdate: () => {
+    if (updateReady) { location.reload(); return; }
+    if (!swReg) { toast('Проверка доступна в установленном приложении'); return; }
+    toast('Проверяем…'); swReg.update().catch(() => {});
+    setTimeout(() => { if (!updateReady) toast('У вас последняя версия'); }, 2500);
+  },
   tab: b => { ui.tab = b.dataset.v; render(); window.scrollTo(0, 0); },
   goTab: b => { ui.tab = b.dataset.v; render(); window.scrollTo(0, 0); },
   pickDay: b => { ui.day = b.dataset.d; render(); },
@@ -1621,7 +2088,7 @@ const A = {
     if (poeticOn() && t.kind !== 'free' && day === todayISO() && t.done[doneKey(t, day)]) { const tf = tasksFor(P(), day, day), all = tf.over.concat(tf.list); if (all.length >= 2 && all.every(x => taskDone(x, day))) toast(DAY_DONE[dayOfYear() % DAY_DONE.length]); }
   },
   freeToDay: b => { const t = P().tasks.find(x => x.id === b.dataset.id); if (!t) return; const day = b.dataset.day || ui.day; t.kind = 'once'; t.date = day; t.created = day; t.done = {}; delete t.doneAt; save(); render(); },
-  editTask: b => taskSheet(b.dataset.id), addTask: () => taskSheet(null),
+  editTask: b => taskSheet(b.dataset.id), addTask: () => openComposer(),
   editOp: b => opSheet(b.dataset.id), addOp: () => opSheet(null),
   addIncome: () => opSheet(null, { type: 'in' }), addExpense: () => opSheet(null, { type: 'out' }),
   quickAdd: b => {
@@ -1630,9 +2097,21 @@ const A = {
     p.ledger.push(rec); ui.month = rec.date.slice(0, 7); save(); buzz(10); render();
     toast('Добавлено: ' + o.title, () => { const i = p.ledger.findIndex(x => x.id === rec.id); if (i >= 0) p.ledger.splice(i, 1); save(); render(); });
   },
-  markPaid: b => { const e = P().ledger.find(x => x.id === b.dataset.id); if (e) { e.unpaid = false; save(); buzz(10); render(); } },
+  markPaid: b => A.payDebt(b),
+  payDebt: b => { const e = P().ledger.find(x => x.id === b.dataset.id); if (!e) return; const undo = payDebt(e, 0); buzz(10); render(); toast('Оплачено, записано в ' + (e.type === 'in' ? 'доход' : 'расход') + ' за сегодня', undo); },
+  partDebt: b => partSheet(b.dataset.id),
+  addDebt: () => opSheet(null, { type: 'in', unpaid: true }),
+  ledTab: b => { ui.led = b.dataset.v; render(); },
+  remind: b => {
+    const who = b.dataset.who, p = P(), es = p.ledger.filter(e => e.unpaid && e.type === 'in' && ((e.who || '').trim() || 'Без имени') === who);
+    const tot = es.reduce((a, e) => a + e.amount, 0), names = es.map(e => e.title).join(', ');
+    const txt = 'Здравствуйте' + (who !== 'Без имени' ? ', ' + who : '') + '! Напоминаю про оплату: ' + money(tot) + (names ? ' (' + names + ')' : '') + '. Когда сможете перевести? Спасибо!';
+    const done = () => toast('Текст скопирован, вставьте в мессенджер');
+    if (navigator.share) { navigator.share({ text: txt }).catch(() => {}); return; }
+    try { navigator.clipboard.writeText(txt).then(done, () => copySheet(txt)); } catch (e) { copySheet(txt); }
+  },
   setLF: b => { ui.lf = b.dataset.v; render(); },
-  openDebts: () => { ui.tab = 'ledger'; ui.lf = 'debt'; ui.lq = ''; render(); window.scrollTo(0, 0); },
+  openDebts: () => { ui.tab = 'ledger'; ui.led = 'debts'; ui.lq = ''; render(); window.scrollTo(0, 0); },
   copyMonth: () => {
     const txt = monthTSV(P(), ui.month);
     try { navigator.clipboard.writeText(txt).then(() => toast('Таблица скопирована'), () => copySheet(txt)); } catch (e) { copySheet(txt); }
@@ -1662,9 +2141,9 @@ const A = {
   aboutTile: () => tileSheet(),
   setGoal: b => { P().goal = Number(b.dataset.v) || 0; save(); render(); toast('Цель месяца обновлена'); },
   hideHints: () => { S.settings.hints = false; save(); render(); },
-  lock: () => { if (session.demo) { S = null; session = { dk: null, raw: null, vault: null, demo: false }; render(); } else lockNow(); },
+  lock: () => { if (session.demo) { S = null; session = { dk: null, raw: null, vault: null, demo: false }; render(); } else lockNow(true); },
   toSetup: () => { S = null; session = { dk: null, raw: null, vault: null, demo: false }; ui.mode = null; render(); },
-  changePass: () => passSheet(), newRecovery: () => recoverySheet(), backup: () => backupSheet(),
+  changePass: () => passSheet(), newRecovery: () => recoverySheet(),
   delProject: b => {
     if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Точно удалить проект?'; setTimeout(() => { if (b.isConnected) { b.classList.remove('armed'); b.textContent = 'Удалить этот проект'; } }, 3000); return; }
     S.projects = S.projects.filter(x => x.id !== S.activeId); S.activeId = S.projects[0].id; ui.tab = 'home'; save(); render();
@@ -1695,7 +2174,7 @@ function doSwipe(row, dir) {
   } else if (kind === 'op') {
     const e = p.ledger.find(x => x.id === id); if (!e) return;
     if (dir === 'l') { removeWithUndo(p.ledger, id, 'Запись удалена'); return; }
-    if (e.unpaid) { e.unpaid = false; save(); toast('Отмечено как оплаченное', () => { e.unpaid = true; save(); render(); }); return; }
+    if (e.unpaid) { const undo = payDebt(e, 0); toast('Оплачено, записано в ' + (e.type === 'in' ? 'доход' : 'расход') + ' за сегодня', undo); return; }
     const copy = Object.assign({}, e, { id: uid(), date: today, unpaid: false }); p.ledger.push(copy); ui.month = today.slice(0, 7); save();
     toast('Копия добавлена на сегодня', () => { const i = p.ledger.findIndex(x => x.id === copy.id); if (i >= 0) p.ledger.splice(i, 1); save(); render(); });
   } else if (kind === 'note') {
@@ -1710,66 +2189,189 @@ function doSwipe(row, dir) {
     if (dir === 'r') stepQty(id, 1); else { delete ui.qty[id]; }
   }
 }
-const SW_TH = 84; let G = null, noClickUntil = 0;
+const SW_TH = 76; let G = null, noClickUntil = 0, gRaf = 0;
 const swOn = area => !!(S && S.settings.swipes && S.settings.areas[area]);
+const rband = (d, lim) => { const a = Math.abs(d), sg = d < 0 ? -1 : 1; return sg * (a <= lim ? a : lim + (a - lim) * 0.3); };
+const SPRING_EASE = 'cubic-bezier(.2,1.25,.4,1)';
+function paintG() {
+  gRaf = 0; if (!G || !G.lock) return;
+  if (G.type === 'row') {
+    const x = rband(G.dx, SW_TH), dir = x > 0 ? 'r' : 'l';
+    G.fg.style.transform = 'translate3d(' + x + 'px,0,0)';
+    if (G.el.dataset.dir !== dir) G.el.dataset.dir = dir;
+    const hit = Math.abs(G.dx) >= SW_TH; if (hit !== G.hit) { G.hit = hit; G.el.classList.toggle('hit', hit); if (hit) buzz(6); }
+  } else if (G.type === 'nav') {
+    if (G.view) G.view.style.transform = 'translate3d(' + rband(G.dx, 40) * 0.8 + 'px,0,0)';
+  } else if (G.type === 'sheet') { G.el.style.transform = 'translate3d(0,' + Math.max(0, G.dy) + 'px,0)'; }
+}
 document.addEventListener('pointerdown', ev => {
   if (G || !S) return;
   if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-  const t = ev.target, base = { x: ev.clientX, y: ev.clientY, id: ev.pointerId, dx: 0, dy: 0, lock: false };
+  const t = ev.target, base = { x: ev.clientX, y: ev.clientY, id: ev.pointerId, dx: 0, dy: 0, lock: false, vx: 0, vy: 0, lt: performance.now(), lx: ev.clientX, ly: ev.clientY };
   const hd = t.closest('.grab,.sheet-head');
   if (hd && !t.closest('button,input,textarea') && swOn('sheets')) { G = Object.assign(base, { type: 'sheet', el: hd.closest('.sheet') }); return; }
   if (t.closest('.sheet-wrap')) return;
   const row = t.closest('.sw-row');
   if (row && swOn('rows') && !t.closest('input,textarea,select')) { G = Object.assign(base, { type: 'row', el: row, fg: row.querySelector('.sw-fg'), hit: false }); return; }
   const nav = t.closest('[data-nav]');
-  if (nav && swOn('nav') && !t.closest('input,textarea,select')) G = Object.assign(base, { type: 'nav', el: nav });
+  if (nav && swOn('nav') && !t.closest('input,textarea,select')) G = Object.assign(base, { type: 'nav', el: nav, view: nav.dataset.nav === 'day' ? (nav.closest('.dayzone') || nav) : document.querySelector('.view') });
 });
 document.addEventListener('pointermove', ev => {
   if (!G || ev.pointerId !== G.id) return;
-  const dx = ev.clientX - G.x, dy = ev.clientY - G.y;
+  const dx = ev.clientX - G.x, dy = ev.clientY - G.y, now = performance.now(), dt = now - G.lt;
+  if (dt > 0) { const k = 0.6; G.vx = G.vx * (1 - k) + (ev.clientX - G.lx) / dt * k; G.vy = G.vy * (1 - k) + (ev.clientY - G.ly) / dt * k; G.lt = now; G.lx = ev.clientX; G.ly = ev.clientY; }
   if (!G.lock) {
     if (G.type === 'sheet') {
       if (dy < -8 || Math.abs(dx) > 14) { G = null; return; }
-      if (dy > 8) { G.lock = true; try { G.el.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ } } else return;
+      if (dy > 8) { G.lock = true; G.el.style.animation = 'none'; G.el.style.transition = 'none'; try { G.el.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ } } else return;
     } else {
       if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { G = null; return; }
-      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3) { G.lock = true; try { G.el.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ } if (G.type === 'row') G.el.classList.add('drag'); } else return;
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        G.lock = true; try { G.el.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+        if (G.type === 'row') { G.el.classList.add('drag'); G.fg.style.transition = 'none'; }
+        if (G.type === 'nav' && G.view) { G.view.style.transition = 'none'; G.view.classList.add('slide'); }
+        G.x = ev.clientX - Math.sign(dx) * 2; // плавный старт без рывка
+      } else return;
     }
   }
-  G.dx = dx; G.dy = dy;
-  if (G.type === 'row') {
-    const x = Math.max(-150, Math.min(150, dx));
-    G.fg.style.transition = 'none'; G.fg.style.transform = 'translateX(' + x + 'px)'; G.el.dataset.dir = x > 0 ? 'r' : 'l';
-    const hit = Math.abs(x) >= SW_TH; if (hit !== G.hit) { G.hit = hit; G.el.classList.toggle('hit', hit); if (hit) buzz(6); }
-  } else if (G.type === 'sheet') { G.el.style.animation = 'none'; G.el.style.transition = 'none'; G.el.style.transform = 'translateY(' + Math.max(0, dy) + 'px)'; }
+  G.dx = ev.clientX - G.x; G.dy = dy;
+  if (!gRaf) gRaf = requestAnimationFrame(paintG);
 });
+function springBack(el, from, prop) {
+  if (!el) return;
+  if (el.animate && !reduceMotion()) el.animate([{ transform: from }, { transform: 'none' }], { duration: 420, easing: SPRING_EASE });
+  el.style.transform = '';
+}
 function endG(ev, cancel) {
   if (!G || ev.pointerId !== G.id) return;
-  const g = G; G = null;
+  const g = G; G = null; if (gRaf) { cancelAnimationFrame(gRaf); gRaf = 0; }
   if (!g.lock) return;
   noClickUntil = Date.now() + 350;
   if (g.type === 'row') {
-    g.fg.style.transition = 'transform .16s ease';
-    if (!cancel && Math.abs(g.dx) >= SW_TH) {
-      const dir = g.dx > 0 ? 'r' : 'l';
-      g.fg.style.transform = 'translateX(' + (dir === 'r' ? '110%' : '-110%') + ')';
-      setTimeout(() => { if (S) { doSwipe(g.el, dir); render(); } }, 150);
-    } else { g.fg.style.transform = ''; setTimeout(() => { g.el.classList.remove('drag', 'hit'); delete g.el.dataset.dir; g.fg.style.transition = ''; }, 170); }
+    const x = rband(g.dx, SW_TH), commit = !cancel && (Math.abs(g.dx) >= SW_TH || (Math.abs(g.vx) > 0.55 && Math.abs(g.dx) > 34));
+    const dir = g.dx > 0 ? 'r' : 'l', kind = g.el.dataset.sw, id = g.el.dataset.id, day = g.el.dataset.day;
+    const clear = () => { g.el.classList.remove('drag', 'hit'); delete g.el.dataset.dir; g.fg.style.transition = ''; };
+    if (!commit) { springBack(g.fg, 'translate3d(' + x + 'px,0,0)'); setTimeout(clear, 430); return; }
+    const leaves = dir === 'l' && kind !== 'item';
+    const run = () => {
+      if (!S) return;
+      doSwipe(g.el, dir); render();
+      if (!leaves) {
+        const sel = '.sw-row[data-sw="' + kind + '"][data-id="' + id + '"]' + (day ? '[data-day="' + day + '"]' : '');
+        const nr = document.querySelector(sel);
+        if (nr) { const f = nr.querySelector('.sw-fg'); if (f && f.animate && !reduceMotion()) { nr.classList.add('drag'); nr.dataset.dir = dir; f.animate([{ transform: 'translate3d(' + x + 'px,0,0)' }, { transform: 'none' }], { duration: 460, easing: SPRING_EASE }).finished.then(() => { nr.classList.remove('drag'); delete nr.dataset.dir; }, () => {}); } }
+      }
+    };
+    if (reduceMotion() || !g.el.animate) { run(); return; }
+    if (leaves) {
+      const w = g.el.offsetWidth, h = g.el.offsetHeight;
+      g.fg.animate([{ transform: 'translate3d(' + x + 'px,0,0)' }, { transform: 'translate3d(-' + (w + 20) + 'px,0,0)' }], { duration: 190, easing: 'cubic-bezier(.4,0,.9,.5)', fill: 'forwards' }).finished
+        .then(() => g.el.animate([{ height: h + 'px', opacity: 1 }, { height: '0px', opacity: 0 }], { duration: 210, easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' }).finished)
+        .then(run, run);
+    } else run();
   } else if (g.type === 'nav') {
-    if (!cancel && Math.abs(g.dx) >= 70) {
+    const v = g.view, commit = !cancel && (Math.abs(g.dx) >= 64 || (Math.abs(g.vx) > 0.5 && Math.abs(g.dx) > 28));
+    if (v) { v.style.transition = ''; v.classList.remove('slide'); }
+    if (commit) {
+      if (v) v.style.transform = '';
       const dir = g.dx < 0 ? 1 : -1, k = g.el.dataset.nav;
       if (k === 'day') ui.day = addDays(ui.day, dir); else if (k === 'week') ui.day = addDays(ui.day, 7 * dir); else if (k === 'month') ui.month = addMonth(ui.month, dir);
       buzz(8); render();
-    }
+    } else if (v) springBack(v, 'translate3d(' + rband(g.dx, 40) * 0.8 + 'px,0,0)');
   } else if (g.type === 'sheet') {
-    if (!cancel && g.dy > 110) { const s = g.el.closest('.sheet-wrap').querySelector('.scrim'); if (s) s.click(); }
-    else { g.el.style.transition = 'transform .18s ease'; g.el.style.transform = ''; }
+    if (!cancel && (g.dy > 110 || g.vy > 0.7)) {
+      const s = g.el.closest('.sheet-wrap').querySelector('.scrim');
+      g.el.style.transition = 'transform .22s cubic-bezier(.4,0,1,1)'; g.el.style.transform = 'translate3d(0,100%,0)';
+      setTimeout(() => { if (s) s.click(); }, 200);
+    } else { g.el.style.transition = 'transform .42s ' + SPRING_EASE; g.el.style.transform = ''; setTimeout(() => { g.el.style.transition = ''; }, 440); }
   }
 }
 document.addEventListener('pointerup', ev => endG(ev, false));
 document.addEventListener('pointercancel', ev => endG(ev, true));
 window.addEventListener('blur', () => { if (G && G.lock && G.type === 'row') { G.fg.style.transform = ''; G.el.classList.remove('drag', 'hit'); } G = null; });
 document.addEventListener('click', ev => { if (Date.now() < noClickUntil) { ev.stopPropagation(); ev.preventDefault(); } }, true);
+
+
+/* ---------- быстрая запись задачи: клавиатура сразу, Enter добавляет и оставляет её ---------- */
+const cmp = { el: null, when: 'day', star: false, n: 0 };
+function closeComposer() {
+  const w = cmp.el; if (!w) return; cmp.el = null;
+  try { w.querySelector('input').blur(); } catch (e) { /* ignore */ }
+  if (window.visualViewport) { visualViewport.removeEventListener('resize', cmp.fn); visualViewport.removeEventListener('scroll', cmp.fn); }
+  const bar = w.querySelector('.cmp-bar');
+  if (bar.animate && !reduceMotion()) { bar.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(30px)', opacity: 0 }], { duration: 160, easing: 'ease-in', fill: 'forwards' }).finished.then(() => w.remove(), () => w.remove()); w.querySelector('.cmp-scrim').style.opacity = '0'; }
+  else w.remove();
+}
+function composerChips() {
+  const t = todayISO(), dl = ui.day === t ? 'Сегодня' : (() => { const d = parseISO(ui.day); return d.getDate() + ' ' + MONTHS_G[d.getMonth()]; })();
+  const ch = (k, l) => '<button type="button" class="chip" data-w="' + k + '" aria-pressed="' + (cmp.when === k) + '">' + l + '</button>';
+  return ch('day', dl) + ch('tomorrow', 'Завтра') + ch('daily', 'Каждый день') + (P().flags.star ? '<button type="button" class="chip" data-star="1" aria-pressed="' + cmp.star + '">' + ic('star', 14) + ' Важное</button>' : '') + '<button type="button" class="chip" data-more="1">Ещё…</button>';
+}
+function openComposer() {
+  if (cmp.el || !S) return;
+  cmp.when = 'day'; cmp.star = false; cmp.n = 0;
+  const w = document.createElement('div'); w.id = 'cmp';
+  w.innerHTML = '<div class="cmp-scrim"></div><form class="cmp-bar" autocomplete="off" novalidate><div class="cmp-grab"></div><div class="cmp-chips">' + composerChips() + '</div><div class="cmp-row"><input id="cmp-in" enterkeyhint="send" autocapitalize="sentences" autocorrect="on" placeholder="Что нужно сделать?" aria-label="Новая задача"><button class="cmp-go" type="submit" aria-label="Добавить" disabled>' + ic('up', 22) + '</button></div><div class="cmp-done" aria-live="polite"></div></form>';
+  document.body.appendChild(w); cmp.el = w;
+  const inp = w.querySelector('input'), go = w.querySelector('.cmp-go'), chips = w.querySelector('.cmp-chips'), bar = w.querySelector('.cmp-bar'), done = w.querySelector('.cmp-done');
+  inp.focus(); // синхронно, в жесте пользователя: иначе iOS не откроет клавиатуру
+  cmp.fn = () => { const vv = window.visualViewport; if (!vv || !cmp.el) return; const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); bar.style.transform = kb ? 'translate3d(0,' + (-kb) + 'px,0)' : ''; bar.style.animation = kb ? 'none' : ''; };
+  if (window.visualViewport) { visualViewport.addEventListener('resize', cmp.fn); visualViewport.addEventListener('scroll', cmp.fn); }
+  const submit = () => {
+    const title = inp.value.trim(); if (!title) return;
+    const p = P(), t0 = todayISO();
+    const date = cmp.when === 'tomorrow' ? addDays(ui.day, 1) : ui.day;
+    const kind = cmp.when === 'daily' ? 'daily' : 'once';
+    p.tasks.push({ id: uid(), title, kind, days: [], date, star: cmp.star, created: kind === 'once' ? date : t0, done: {}, skip: {} });
+    save(); buzz(10); cmp.n++; inp.value = ''; go.disabled = true; inp.placeholder = 'Ещё одну?'; inp.focus();
+    done.textContent = '✓ ' + title + (cmp.when === 'tomorrow' ? ' · на завтра' : cmp.when === 'daily' ? ' · каждый день' : '');
+    render();
+  };
+  inp.addEventListener('input', () => { go.disabled = !inp.value.trim(); });
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } });
+  bar.addEventListener('submit', ev => { ev.preventDefault(); submit(); });
+  go.addEventListener('pointerdown', ev => ev.preventDefault()); // не теряем фокус и клавиатуру
+  chips.addEventListener('pointerdown', ev => ev.preventDefault());
+  chips.addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.w) cmp.when = b.dataset.w; else if (b.dataset.star) cmp.star = !cmp.star;
+    else if (b.dataset.more) { const title = inp.value.trim(), kind = cmp.when === 'daily' ? 'daily' : 'once', date = cmp.when === 'tomorrow' ? addDays(ui.day, 1) : ui.day, star = cmp.star; closeComposer(); setTimeout(() => taskSheet(null, { title, kind, date, star }), 30); return; }
+    chips.innerHTML = composerChips(); inp.focus();
+  });
+  w.querySelector('.cmp-scrim').addEventListener('pointerdown', ev => { ev.preventDefault(); closeComposer(); });
+  let ty = null;
+  bar.addEventListener('touchstart', ev => { ty = ev.touches[0].clientY; }, { passive: true });
+  bar.addEventListener('touchmove', ev => { if (ty !== null && ev.touches[0].clientY - ty > 36) { ty = null; closeComposer(); } }, { passive: true });
+  w.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeComposer(); });
+}
+/* тяните вниз от верха экрана: новая задача */
+const pullEl = document.createElement('div'); pullEl.id = 'pull'; pullEl.innerHTML = '<b></b>'; document.body.appendChild(pullEl);
+let PL = null;
+document.addEventListener('touchstart', e => {
+  PL = null;
+  if (!S || ui.tab !== 'today' || e.touches.length !== 1 || window.scrollY > 0 || document.querySelector('.sheet-wrap,#cmp')) return;
+  if (e.target.closest && e.target.closest('input,textarea,select')) return;
+  PL = { y: e.touches[0].clientY, x: e.touches[0].clientX, d: 0, on: false, hit: false, v: document.querySelector('.view') };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!PL) return;
+  const t = e.touches[0], dy = t.clientY - PL.y, dx = t.clientX - PL.x;
+  if (!PL.on) { if (dy < -6 || (Math.abs(dx) > 12 && Math.abs(dx) > dy)) { PL = null; return; } if (dy > 12 && window.scrollY <= 0) { PL.on = true; if (PL.v) PL.v.style.transition = 'none'; } else return; }
+  PL.d = dy; const off = rband(dy, 84) * 0.55;
+  if (PL.v) PL.v.style.transform = 'translate3d(0,' + off + 'px,0)';
+  const prog = Math.min(1, dy / 84), hit = dy >= 84;
+  pullEl.style.opacity = String(Math.min(1, prog * 1.3)); pullEl.style.transform = 'translateY(' + Math.min(prog * 10, 10) + 'px)';
+  if (hit !== PL.hit) { PL.hit = hit; pullEl.classList.toggle('hit', hit); if (hit) buzz(8); pullEl.firstChild.innerHTML = ic('plus', 15) + (hit ? 'Отпустите: новая задача' : 'Потяните: новая задача'); }
+  else if (!pullEl.firstChild.innerHTML) pullEl.firstChild.innerHTML = ic('plus', 15) + 'Потяните: новая задача';
+}, { passive: true });
+function pullEnd() {
+  if (!PL) return; const g = PL; PL = null; if (!g.on) return;
+  noClickUntil = Date.now() + 350;
+  pullEl.style.opacity = '0'; pullEl.classList.remove('hit'); pullEl.firstChild.innerHTML = '';
+  if (g.v) { g.v.style.transition = ''; if (g.v.animate && !reduceMotion()) g.v.animate([{ transform: 'translate3d(0,' + rband(g.d, 84) * 0.55 + 'px,0)' }, { transform: 'none' }], { duration: 380, easing: SPRING_EASE }); g.v.style.transform = ''; }
+  if (g.d >= 84) openComposer();
+}
+document.addEventListener('touchend', pullEnd); document.addEventListener('touchcancel', () => { if (PL && PL.on) { if (PL.v) { PL.v.style.transform = ''; PL.v.style.transition = ''; } pullEl.style.opacity = '0'; } PL = null; });
 
 /* ---------- events ---------- */
 document.addEventListener('click', ev => {
@@ -1805,35 +2407,42 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); if (S && !session.demo) persist(); }
-  else if (S && !session.demo && S.settings.autolock > 0 && hiddenAt && Date.now() - hiddenAt > S.settings.autolock * 60000) lockNow();
+  else {
+    if (swReg && !updateReady && Date.now() - (window.__lastUpd || 0) > 60000) { window.__lastUpd = Date.now(); swReg.update().catch(() => {}); }
+    if (S && !session.demo && !(devReady && prefs.gate === 'none') && S.settings.autolock > 0 && hiddenAt && Date.now() - hiddenAt > S.settings.autolock * 60000) lockNow();
+  }
 });
 
 
 /* ---------- установка как приложения ---------- */
 const isStandalone = () => { try { return navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches; } catch (e) { return false; } };
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-let deferredInstall = null, installDismissed = lsGet('defter.install.dismissed') === '1';
+let deferredInstall = null, installDismissed = lsGet('tempo.install.dismissed') === '1';
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (!S) render(); });
 window.addEventListener('appinstalled', () => { deferredInstall = null; if (!S) render(); });
 function installHTML(mode) {
   if (isStandalone() || (installDismissed && mode !== 'setup')) return '';
-  if (isIOS) return '<div class="install"><b>Сначала добавьте на экран «Домой»</b><ol><li>Нажмите «Поделиться» (квадрат со стрелкой) в Safari.</li><li>Выберите «На экран “Домой”».</li><li>Откройте дефтер с иконки и только там создайте пароль.</li></ol><span class="muted small">Так дефтер откроется как обычное приложение, а данные будут храниться в нём надёжно. Если создать хранилище до установки, оно останется в Safari и в приложение не перенесётся.</span>' + (mode === 'setup' ? '' : '<button class="x" data-inst="x">Скрыть</button>') + '</div>';
+  if (isIOS) return '<div class="install"><b>Сначала добавьте на экран «Домой»</b><ol><li>Нажмите «Поделиться» (квадрат со стрелкой) в Safari.</li><li>Выберите «На экран “Домой”».</li><li>Откройте Темп с иконки и только там создайте пароль.</li></ol><span class="muted small">Так Темп откроется как обычное приложение, а данные будут храниться в нём надёжно. Если создать хранилище до установки, оно останется в Safari и в приложение не перенесётся.</span>' + (mode === 'setup' ? '' : '<button class="x" data-inst="x">Скрыть</button>') + '</div>';
   if (deferredInstall) return '<div class="install"><b>Установите приложение</b><span class="muted">Откроется с иконки на экране, без адресной строки, и будет работать без интернета.</span><button class="btn primary" data-inst="go">Установить</button><button class="x" data-inst="x">Не сейчас</button></div>';
   return '';
 }
 function wireInstall() {
   document.querySelectorAll('[data-inst]').forEach(b => b.addEventListener('click', async () => {
-    if (b.dataset.inst === 'x') { installDismissed = true; lsSet('defter.install.dismissed', '1'); render(); return; }
+    if (b.dataset.inst === 'x') { installDismissed = true; lsSet('tempo.install.dismissed', '1'); render(); return; }
     if (deferredInstall) { try { deferredInstall.prompt(); await deferredInstall.userChoice; } catch (e) { /* ignore */ } deferredInstall = null; render(); }
   }));
 }
+/* ---------- обновления ---------- */
+const APP_VERSION = 'fcc7c7e8';
+let swReg = null, updateReady = false;
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* офлайн-режим недоступен, приложение работает и так */ }); });
+  const hadCtl = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl && !updateReady) { updateReady = true; toastBtn('Вышла новая версия Темпа', 'Обновить', () => location.reload(), 15000); if (S && ui.tab === 'settings') render(); } });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => { /* офлайн-режим недоступен, приложение работает и так */ }); });
 }
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
 
-applyTheme();
-render();
+boot().catch(() => { render(); const sp = document.getElementById('splash'); if (sp) sp.remove(); });
 })();
 </script>
 </body>
