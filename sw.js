@@ -1,8 +1,9 @@
-/* Темп: офлайн-оболочка. Версия fcc7c7e8 */
-const CACHE = 'temp-fcc7c7e8';
+/* Темп: офлайн-оболочка. Версия 07036465 */
+const CACHE = 'temp-07036465';
 const SHELL = ["./", "index.html", "legal.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png", "icons/icon.svg"];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+self.addEventListener('notificationclick', e => { e.notification.close(); e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => cs.length ? cs[0].focus() : self.clients.openWindow('./'))); });
 self.addEventListener('fetch', e => {
   const r = e.request; if (r.method !== 'GET') return;
   const u = new URL(r.url); if (u.origin !== location.origin) return;
