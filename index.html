@@ -2384,7 +2384,7 @@ document.addEventListener('click', ev => { if (Date.now() < noClickUntil) { ev.s
 const cmp = { el: null, when: 'day', star: false, n: 0, time: '', bell: false };
 function closeComposer() {
   const w = cmp.el; if (!w) return; cmp.el = null;
-  try { w.querySelector('#cmp-in').blur(); } catch (e) { /* ignore */ }
+  try { const v = w.querySelector('#cmp-in').value.trim(); if (v) cmp.draft = { v, at: Date.now() }; w.querySelector('#cmp-in').blur(); } catch (e) { /* ignore */ }
   if (window.visualViewport) { visualViewport.removeEventListener('resize', cmp.fn); visualViewport.removeEventListener('scroll', cmp.fn); }
   const bar = w.querySelector('.cmp-bar');
   if (bar.animate && !reduceMotion()) { bar.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(30px)', opacity: 0 }], { duration: 160, easing: 'ease-in', fill: 'forwards' }).finished.then(() => w.remove(), () => w.remove()); w.querySelector('.cmp-scrim').style.opacity = '0'; }
@@ -2393,15 +2393,17 @@ function closeComposer() {
 function composerChips() {
   const t = todayISO(), dl = ui.day === t ? 'Сегодня' : (() => { const d = parseISO(ui.day); return d.getDate() + ' ' + MONTHS_G[d.getMonth()]; })();
   const ch = (k, l) => '<button type="button" class="chip" data-w="' + k + '" aria-pressed="' + (cmp.when === k) + '">' + l + '</button>';
-  return ch('day', dl) + ch('tomorrow', 'Завтра') + ch('daily', 'Каждый день') + (P().flags.star ? '<button type="button" class="chip" data-star="1" aria-pressed="' + cmp.star + '">' + ic('star', 14) + ' Важное</button>' : '') + '<label class="chip timechip" aria-pressed="' + !!cmp.time + '">' + ic('clock', 14) + ' ' + (cmp.time || 'Время') + '<input type="time" id="cmp-time" value="' + cmp.time + '" aria-label="Время задачи"></label>' + (cmp.time ? '<button type="button" class="chip" data-bell="1" aria-pressed="' + cmp.bell + '">' + ic('bell', 14) + ' Напомнить</button>' : '') + '<button type="button" class="chip" data-more="1">Ещё…</button>';
+  return ch('day', dl) + ch('tomorrow', 'Завтра') + '<label class="chip timechip" aria-pressed="' + !!cmp.time + '">' + ic('clock', 14) + ' ' + (cmp.time || 'Время') + '<input type="time" id="cmp-time" value="' + cmp.time + '" aria-label="Время задачи"></label>' + (cmp.time ? '<button type="button" class="chip" data-bell="1" aria-pressed="' + cmp.bell + '">' + ic('bell', 14) + ' Напомнить</button>' : '') + ch('daily', 'Каждый день') + (P().flags.star ? '<button type="button" class="chip" data-star="1" aria-pressed="' + cmp.star + '">' + ic('star', 14) + ' Важное</button>' : '') + '<button type="button" class="chip" data-more="1">Ещё…</button>';
 }
 function openComposer() {
   if (cmp.el || !S) return;
   cmp.when = 'day'; cmp.star = false; cmp.n = 0; cmp.time = ''; cmp.bell = false;
+  const draft = cmp.draft && Date.now() - cmp.draft.at < 10 * 60000 ? cmp.draft.v : ''; cmp.draft = null;
   const w = document.createElement('div'); w.id = 'cmp';
   w.innerHTML = '<div class="cmp-scrim"></div><form class="cmp-bar" autocomplete="off" novalidate><div class="cmp-grab"></div><div class="cmp-chips">' + composerChips() + '</div><div class="cmp-row"><input id="cmp-in" enterkeyhint="send" autocapitalize="sentences" autocorrect="on" placeholder="Что нужно сделать?" aria-label="Новая задача"><button class="cmp-go" type="submit" aria-label="Добавить" disabled>' + ic('up', 22) + '</button></div><div class="cmp-done" aria-live="polite"></div></form>';
   document.body.appendChild(w); cmp.el = w;
   const inp = w.querySelector('#cmp-in'), go = w.querySelector('.cmp-go'), chips = w.querySelector('.cmp-chips'), bar = w.querySelector('.cmp-bar'), done = w.querySelector('.cmp-done');
+  if (draft) { inp.value = draft; go.disabled = false; }
   inp.focus(); // синхронно, в жесте пользователя: иначе iOS не откроет клавиатуру
   cmp.fn = () => { const vv = window.visualViewport; if (!vv || !cmp.el) return; const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); bar.style.transform = kb ? 'translate3d(0,' + (-kb) + 'px,0)' : ''; bar.style.animation = kb ? 'none' : ''; };
   if (window.visualViewport) { visualViewport.addEventListener('resize', cmp.fn); visualViewport.addEventListener('scroll', cmp.fn); }
@@ -2428,10 +2430,11 @@ function openComposer() {
     else if (b.dataset.more) { const title = inp.value.trim(), kind = cmp.when === 'daily' ? 'daily' : 'once', date = cmp.when === 'tomorrow' ? addDays(ui.day, 1) : ui.day, star = cmp.star, time = cmp.time, rem = cmp.time && cmp.bell ? 0 : null; closeComposer(); setTimeout(() => taskSheet(null, { title, kind, date, star, time, rem }), 30); return; }
     chips.innerHTML = composerChips(); inp.focus();
   });
-  w.querySelector('.cmp-scrim').addEventListener('pointerdown', ev => { ev.preventDefault(); closeComposer(); });
-  let ty = null;
-  bar.addEventListener('touchstart', ev => { ty = ev.touches[0].clientY; }, { passive: true });
-  bar.addEventListener('touchmove', ev => { if (ty !== null && ev.touches[0].clientY - ty > 36) { ty = null; closeComposer(); } }, { passive: true });
+  const opened = Date.now();
+  w.querySelector('.cmp-scrim').addEventListener('click', ev => { if (Date.now() - opened < 500) return; closeComposer(); });
+  let ty = null, tx = 0;
+  bar.addEventListener('touchstart', ev => { const t = ev.target; ty = t.closest && t.closest('.cmp-chips,input,button,label') ? null : ev.touches[0].clientY; tx = ev.touches[0].clientX; }, { passive: true });
+  bar.addEventListener('touchmove', ev => { if (ty === null) return; const dy = ev.touches[0].clientY - ty, dx = Math.abs(ev.touches[0].clientX - tx); if (dy > 70 && dy > dx * 2) { ty = null; closeComposer(); } }, { passive: true });
   w.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeComposer(); });
 }
 /* тяните вниз от верха экрана: новая задача */
@@ -2584,7 +2587,7 @@ function wireInstall() {
   }));
 }
 /* ---------- обновления ---------- */
-const APP_VERSION = '07036465';
+const APP_VERSION = '33a3f8e8';
 let swReg = null, updateReady = false;
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   const hadCtl = !!navigator.serviceWorker.controller;
