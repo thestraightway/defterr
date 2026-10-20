@@ -452,6 +452,29 @@ body{overscroll-behavior-y:none}
 .notecount{text-align:center;color:var(--ink-2);font-size:13px;padding:8px 0 2px}
 .cmp-row input:focus-visible{outline:none}
 .qbox{display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
+.lock.q{min-height:calc(100dvh - 9vh);justify-content:center;margin-top:0;gap:22px}
+.qhead{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.qhead .tile{transform:scale(.72);margin:-13px 0}
+.qhead b{display:block;font-size:20px;letter-spacing:-.01em}
+.qhead span{color:var(--ink-2);font-size:14px}
+.qlock{gap:10px}
+.qmsg{margin:0;color:var(--ink-2);font-size:14px;min-height:20px;text-align:center}
+.qlock .pad{grid-template-columns:repeat(3,68px);gap:12px 26px;margin:4px 0}
+.qlock .pad button{width:68px;height:68px;font-size:26px}
+.pad .pk-bio{background:transparent;color:var(--accent)}
+.qin{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qin .f{margin-bottom:8px}
+#o-qh{margin:-2px 0 10px}
+.qcard{display:flex;flex-direction:column;gap:2px;padding:12px 16px}
+.qrow{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:baseline;padding:4px 0}
+.qrow span{color:var(--ink-2);font-size:14px}
+.qrow b{text-align:right;font-variant-numeric:tabular-nums}
+.qrow small{grid-column:1/-1;text-align:right;color:var(--ink-2);font-size:12.5px}
+.pq{display:block;font-size:13px;font-weight:400;color:var(--ink-2);margin-top:2px}
+.crow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.crow b{display:block;font-weight:600}
+.crow small{display:block;color:var(--ink-2);font-size:13px;margin-top:2px}
+.crow .num{font-weight:600;white-space:nowrap}
 .bio-btn{width:96px;height:96px;border-radius:30px;border:0;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;transition:transform .2s var(--spring)}
 .bio-btn:active{transform:scale(.92)}
 .pin-dots{display:flex;gap:16px;margin:6px 0 4px}
@@ -645,6 +668,32 @@ function sumMonth(p, m) {
   }
   return { inn, out, uIn, uOut, dim, dIn, dOut };
 }
+function qtyMonth(p, m, type) {
+  let kg = 0, pcs = 0, amtKg = 0, kgP = 0, pcsK = 0, n = 0;
+  for (const e of p.ledger) {
+    if (e.type !== type || !(e.kg > 0 || e.pcs > 0)) continue;
+    if ((e.since || e.date).slice(0, 7) !== m) continue;
+    n++;
+    if (e.kg > 0) { kg += e.kg; amtKg += e.full || e.amount; }
+    if (e.pcs > 0) pcs += e.pcs;
+    if (e.kg > 0 && e.pcs > 0) { kgP += e.kg; pcsK += e.pcs; }
+  }
+  return { n, kg, pcs, perKg: kg > 0 ? amtKg / kg : 0, perHead: pcsK > 0 ? kgP / pcsK : 0 };
+}
+function clientsMonth(p, m) {
+  const by = {};
+  p.ledger.forEach(e => {
+    if (e.type !== 'in' || !(e.who || '').trim() || (e.since || e.date).slice(0, 7) !== m) return;
+    const k = e.who.trim(), key = k.toLowerCase(), o = by[key] = by[key] || { who: k, sum: 0, kg: 0, pcs: 0, owed: 0, n: 0 };
+    o.sum += e.amount; o.n++; if (e.unpaid) o.owed += e.amount; if (e.kg > 0) o.kg += e.kg; if (e.pcs > 0) o.pcs += e.pcs;
+  });
+  return Object.keys(by).map(k => by[k]).sort((a, b) => b.sum - a.sum);
+}
+function whoList(p, type, cur) {
+  const c = (cur || '').trim().toLowerCase(), cnt = {}, name = {};
+  p.ledger.forEach(e => { const w = (e.who || '').trim(); if (!w || e.type !== type) return; const k = w.toLowerCase(); cnt[k] = (cnt[k] || 0) + 1; name[k] = w; });
+  return Object.keys(cnt).filter(k => k !== c && (!c || k.indexOf(c) >= 0)).sort((a, b) => cnt[b] - cnt[a]).slice(0, 5).map(k => name[k]);
+}
 function catBreakdown(p, m, type) {
   const map = {}; let total = 0;
   p.ledger.forEach(e => { if (e.type !== type || e.unpaid || e.date.slice(0, 7) !== m) return; const k = e.cat || 'Без категории'; map[k] = (map[k] || 0) + e.amount; total += e.amount; });
@@ -653,8 +702,8 @@ function catBreakdown(p, m, type) {
 function monthTSV(p, m) {
   const clean = s => String(s == null ? '' : s).replace(/[\t\r\n]+/g, ' ');
   const rows = p.ledger.filter(e => e.date.slice(0, 7) === m).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
-  return ['Дата\tТип\tСумма\tНазвание\tКатегория\tЗаметка\tСтатус'].concat(rows.map(e =>
-    [e.date, e.type === 'in' ? 'Доход' : 'Расход', String(e.amount).replace('.', ','), clean(e.title), clean(e.cat), clean(e.note), e.unpaid ? 'не оплачено' : 'оплачено'].join('\t'))).join('\n');
+  return ['Дата\tТип\tСумма\tНазвание\tКлиент или поставщик\tКг\tГолов\tКатегория\tЗаметка\tСтатус'].concat(rows.map(e =>
+    [e.date, e.type === 'in' ? 'Доход' : 'Расход', String(e.amount).replace('.', ','), clean(e.title), clean(e.who), e.kg > 0 ? String(e.kg).replace('.', ',') : '', e.pcs > 0 ? String(e.pcs) : '', clean(e.cat), clean(e.note), e.unpaid ? 'не оплачено' : 'оплачено'].join('\t'))).join('\n');
 }
 
 /* notes */
@@ -691,9 +740,12 @@ function normalize(S) {
   S.profile = Object.assign({}, DEF_PROFILE, S.profile || {});
   S.settings = Object.assign({ swipes: true, haptics: true, hide: false, autolock: 5, hints: true, notesView: 'list', notesSort: 'date', poetic: true }, S.settings || {});
   S.settings.areas = Object.assign({ rows: true, nav: true, sheets: true }, S.settings.areas || {});
+  // разделы и функции общие для всего приложения: один переключатель, одно состояние
+  const act = (S.projects || []).find(p => p.id === S.activeId) || (S.projects || [])[0] || {};
+  S.settings.modules = Object.assign({ home: true, planner: true, ledger: true, calc: true, insights: true, notes: true }, S.settings.modules || act.modules || {});
+  S.settings.flags = Object.assign({ suggest: true, streaks: true, debts: true, chart: true, margin: true, quick: true, cats: true, star: true, qty: true }, S.settings.flags || act.flags || {});
   S.projects.forEach(p => {
-    p.modules = Object.assign({ home: true, planner: true, ledger: true, calc: true, insights: true, notes: true }, p.modules || {});
-    p.flags = Object.assign({ suggest: true, streaks: true, debts: true, chart: true, margin: true, quick: true, cats: true, star: true }, p.flags || {});
+    p.modules = S.settings.modules; p.flags = S.settings.flags;
     p.goal = num(p.goal); p.hidden = p.hidden || { ledger: [], tasks: [] };
     p.hidden.ledger = p.hidden.ledger || []; p.hidden.tasks = p.hidden.tasks || [];
     p.plans = p.plans || {}; p.reviews = p.reviews || {}; p.ledger = p.ledger || []; p.items = p.items || []; p.tasks = p.tasks || []; p.notes = p.notes || [];
@@ -812,7 +864,8 @@ function insights(p, today) {
   const oldest = owed.length ? Math.max.apply(null, owed.map(e => dayDiff(e.date, today))) : 0;
   const tr = taskRate(p, today, 7);
   let hot = null; p.tasks.forEach(t => { const n = streak(t, today); if (n >= 3 && (!hot || n > hot.n)) hot = { n, title: t.title }; });
-  return { m, pm, profit, pProfit, inn: s.inn, out: s.out, day, dim, goal, forecast, months, avg3, goalSuggest, bestDow, dowShare, spanDays: dayDiff(first, today),
+  const qIn = qtyMonth(p, m, 'in'), qInP = qtyMonth(p, pm, 'in'), qOut = qtyMonth(p, m, 'out'), qOutP = qtyMonth(p, pm, 'out'), clients = clientsMonth(p, m);
+  return { qIn, qInP, qOut, qOutP, clients, m, pm, profit, pProfit, inn: s.inn, out: s.out, day, dim, goal, forecast, months, avg3, goalSuggest, bestDow, dowShare, spanDays: dayDiff(first, today),
     top, topShare: top && cb.total ? Math.round(top.sum / cb.total * 100) : 0, topPrev, owedSum, owedN: owed.length, oldest, tr, hot,
     margins: itemMargins(p), rec: records(p, today), entries: p.ledger.length };
 }
@@ -923,7 +976,7 @@ async function devUnlock(vault) {
 }
 const devClear = () => { devReady = false; return kv('del', 'dev').catch(() => {}); };
 const pinHash = async (pin, salt) => b64(await crypto.subtle.digest('SHA-256', enc.encode(salt + ':' + pin)));
-const canBio = async () => { try { if (!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)) return false; return !!(await Promise.race([PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(), new Promise(r => setTimeout(() => r(false), 1200))])); } catch (e) { return false; } };
+const canBio = async () => { try { if (!(window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)) return false; return await Promise.race([PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(), new Promise(r => setTimeout(() => r(null), 5000))]); } catch (e) { return null; } };
 async function bioCreate() {
   const cred = await navigator.credentials.create({ publicKey: { challenge: rnd(32), rp: { name: 'Темп' }, user: { id: rnd(16), name: 'tempo', displayName: 'Темп' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' }, timeout: 60000, attestation: 'none' } });
   return b64(cred.rawId);
@@ -938,13 +991,14 @@ async function quickOpen(skipGate) {
 }
 async function boot() {
   applyTheme();
+  bioAvail = !!(prefs.bioOk || prefs.credId);
+  canBio().then(v => { if (v === true) { if (!prefs.bioOk) { prefs.bioOk = true; savePrefs(); } if (!bioAvail) { bioAvail = true; if (S && (ui.tab === 'settings' || ui.gateSetup)) render(); } } });
   const raw = load(); let vault = null; try { vault = raw ? JSON.parse(raw) : null; } catch (e) { vault = null; }
   if (vault && prefs.gate && prefs.gate !== 'password') { try { const d = await kv('get', 'dev'); devReady = !!(d && vault.id && d.vid === vault.id); } catch (e) { devReady = false; } }
   if (devReady && prefs.gate === 'none') { try { await quickOpen(true); const sp0 = document.getElementById('splash'); if (sp0) { sp0.classList.add('out'); setTimeout(() => sp0.remove(), 450); } return; } catch (e) { devReady = false; } }
   ui.autoBio = devReady && prefs.gate === 'bio';
   render();
   const sp = document.getElementById('splash'); if (sp) { sp.classList.add('out'); setTimeout(() => sp.remove(), 450); }
-  canBio().then(v => { if (v !== bioAvail) { bioAvail = v; if (S && ui.tab === 'settings') render(); } });
 }
 
 /* ---------- резервные копии ---------- */
@@ -1024,17 +1078,17 @@ function newProject(name, tpl) {
     const ms = t.slice(0, 8) + '01';
     const dd = n => { const d = addDays(t, -n); return d < ms ? ms : d; };
     const e = (type, amount, title, cat, n, extra) => p.ledger.push(Object.assign({ id: uid(), type, amount, title, cat, date: dd(n), note: '', unpaid: false, who: '' }, extra || {}));
-    e('out', 48000, 'Закупка живой птицы', 'Закупка', 6);
-    e('in', 41800, 'Продажа: магазин у школы', 'Продажи', 5);
+    e('out', 48000, 'Закупка живой птицы', 'Закупка', 6, { who: 'Хозяйство А', kg: 320, pcs: 128 });
+    e('in', 41800, 'Продажа: магазин у школы', 'Продажи', 5, { who: 'Магазин у школы', kg: 147, pcs: 61 });
     e('out', 3200, 'Электричество, цех', 'Прочее', 5);
-    e('in', 52500, 'Продажа: три точки оптом', 'Продажи', 3);
+    e('in', 52500, 'Продажа: три точки оптом', 'Продажи', 3, { who: 'Три точки оптом', kg: 188, pcs: 77 });
     e('out', 2400, 'Бензин, развоз', 'Топливо', 3);
     e('out', 12000, 'Зарплата рабочим', 'Зарплата', 2);
-    e('in', 23600, 'Продажа: кафе', 'Продажи', 1, { unpaid: true, who: 'Кафе у трассы' });
-    p.ledger.push({ id: uid(), type: 'in', amount: 14800, title: 'Продажа: тушки', cat: 'Продажи', date: addDays(t, -16), note: '', unpaid: true, who: 'Магазин «Берёзка»', due: addDays(t, -3) });
-    p.ledger.push({ id: uid(), type: 'in', amount: 9200, title: 'Продажа: курица', cat: 'Продажи', date: addDays(t, -5), note: '', unpaid: true, who: 'Магазин «Берёзка»', due: addDays(t, 4) });
+    e('in', 23600, 'Продажа: кафе', 'Продажи', 1, { unpaid: true, who: 'Кафе у трассы', kg: 83, pcs: 34 });
+    p.ledger.push({ id: uid(), type: 'in', amount: 14800, title: 'Продажа: тушки', cat: 'Продажи', date: addDays(t, -16), note: '', unpaid: true, who: 'Магазин «Берёзка»', due: addDays(t, -3), kg: 52, pcs: 21 });
+    p.ledger.push({ id: uid(), type: 'in', amount: 9200, title: 'Продажа: курица', cat: 'Продажи', date: addDays(t, -5), note: '', unpaid: true, who: 'Магазин «Берёзка»', due: addDays(t, 4), kg: 32, pcs: 13 });
     p.ledger.push({ id: uid(), type: 'out', amount: 18000, title: 'Корм, в долг', cat: 'Корм', date: addDays(t, -9), note: '', unpaid: true, who: 'Поставщик корма', due: addDays(t, 6) });
-    e('in', 9800, 'Продажа: розница', 'Продажи', 0);
+    e('in', 9800, 'Продажа: розница', 'Продажи', 0, { kg: 34, pcs: 14 });
     e('out', 4100, 'Упаковка и пакеты', 'Закупка', 0);
     [['Тушка бройлера', 'кг', 285, 224], ['Грудка', 'кг', 410, 330], ['Окорочка', 'кг', 265, 205], ['Крылья', 'кг', 230, 170], ['Печень', 'кг', 190, 140]]
       .forEach(a => p.items.push({ id: uid(), name: a[0], unit: a[1], price: a[2], cost: a[3] }));
@@ -1042,8 +1096,9 @@ function newProject(name, tpl) {
       const mm = addMonth(t.slice(0, 7), -k), gr = 1 + (3 - k) * 0.07, W = ['магазин у школы', 'три точки оптом', 'кафе у трассы', 'розница', 'магазин у школы', 'три точки оптом', 'розница'];
       [3, 7, 11, 15, 19, 23, 27].forEach((d, j) => {
         const ds = mm + '-' + pad(d);
-        p.ledger.push({ id: uid(), type: 'in', amount: Math.round([34000, 41000, 38500, 45000, 36000, 48000, 40000][j] * gr / 100) * 100, title: 'Продажа: ' + W[j], cat: 'Продажи', date: ds, note: '', unpaid: false, who: '' });
-        if (j % 2 === 0) p.ledger.push({ id: uid(), type: 'out', amount: Math.round([52000, 50000, 47000, 54000][j / 2] * gr / 100) * 100, title: 'Закупка живой птицы', cat: 'Закупка', date: ds, note: '', unpaid: false, who: '' });
+        const am = Math.round([34000, 41000, 38500, 45000, 36000, 48000, 40000][j] * gr / 100) * 100, kgS = Math.round(am / (276 + k * 3));
+        p.ledger.push({ id: uid(), type: 'in', amount: am, title: 'Продажа: ' + W[j], cat: 'Продажи', date: ds, note: '', unpaid: false, who: W[j] === 'розница' ? '' : W[j].charAt(0).toUpperCase() + W[j].slice(1), kg: kgS, pcs: Math.round(kgS / 2.4) });
+        if (j % 2 === 0) { const ao = Math.round([52000, 50000, 47000, 54000][j / 2] * gr / 100) * 100, kgB = Math.round(ao / 150); p.ledger.push({ id: uid(), type: 'out', amount: ao, title: 'Закупка живой птицы', cat: 'Закупка', date: ds, note: '', unpaid: false, who: 'Хозяйство А', kg: kgB, pcs: Math.round(kgB / 2.5) }); }
       });
       p.ledger.push({ id: uid(), type: 'out', amount: 36000, title: 'Зарплата рабочим', cat: 'Зарплата', date: mm + '-28', note: '', unpaid: false, who: '' });
       p.ledger.push({ id: uid(), type: 'out', amount: 6400, title: 'Бензин, развоз', cat: 'Топливо', date: mm + '-20', note: '', unpaid: false, who: '' });
@@ -1072,7 +1127,7 @@ const ui = { tab: 'home', day: todayISO(), month: todayISO().slice(0, 7), qty: {
 const P = () => S.projects.find(p => p.id === S.activeId) || S.projects[0];
 
 let chain = Promise.resolve(), timer = null;
-function save() { if (session.demo || !session.dk) return; clearTimeout(timer); timer = setTimeout(persist, 300); }
+function save() { if (session.demo || !session.dk) return; clearTimeout(timer); timer = setTimeout(persist, 150); }
 function persist() {
   chain = chain.then(async () => {
     if (!session.dk || !S) return;
@@ -1144,28 +1199,41 @@ function opSheet(id, pre) {
   sheet(head(ex ? 'Правка записи' : 'Новая запись') +
     '<div class="seg in-type" id="o-type"><button type="button" data-v="in">Доход</button><button type="button" data-v="out">Расход</button>' + (p.flags.debts ? '<button type="button" data-v="din">Мне должны</button><button type="button" data-v="dout">Я должен</button>' : '') + '</div><p class="hint" id="o-dhint" hidden style="margin:-4px 0 10px"></p>' +
     '<label class="f"><span>Сумма, ₽</span><input id="o-amt" class="big" inputmode="decimal" placeholder="0" autocomplete="off"></label>' +
+    (p.flags.qty ? '<div class="qin"><label class="f"><span>Вес, кг</span><input id="o-kg" inputmode="decimal" placeholder="по желанию" autocomplete="off"></label><label class="f"><span>Голов, шт</span><input id="o-pcs" inputmode="numeric" placeholder="по желанию" autocomplete="off"></label></div><p class="hint" id="o-qh" hidden></p>' : '') +
     (p.items.length ? '<details class="fromprice"><summary>Посчитать из прайса</summary><div class="two"><select id="o-item" class="field"><option value="">Позиция…</option>' + itemsOpt + '</select><input id="o-qty" class="field" inputmode="decimal" placeholder="Кол-во" autocomplete="off"></div><div class="hint" id="o-hint" style="margin:8px 0 0"></div></details>' : '') +
     '<label class="f"><span>Что это</span><input id="o-title" autocomplete="off" placeholder="Например: продажа в магазин"></label>' +
     '<div class="chips" id="o-sug"></div>' +
+    '<label class="f" id="o-whowrap"><span id="o-whol">Клиент, по желанию</span><input id="o-who" autocomplete="off" placeholder="Имя или название"></label><div class="chips" id="o-whos"></div>' + (p.flags.debts ? '<label class="f" id="o-duewrap" hidden><span>Срок оплаты (по желанию)</span><input type="date" id="o-due"></label>' : '') +
     '<div class="f"><span>Категория</span><input id="o-cat" autocomplete="off" placeholder="Выберите или впишите"></div><div class="chips" id="o-cats"></div>' +
     '<label class="f"><span>Дата</span><input type="date" id="o-date"></label>' +
     '<label class="f"><span>Заметка</span><input id="o-note" autocomplete="off"></label>' +
-    (p.flags.debts ? '<label class="f" id="o-whowrap" hidden><span id="o-whol">Кто</span><input id="o-who" autocomplete="off" placeholder="Имя или название"></label><label class="f" id="o-duewrap" hidden><span>Срок оплаты (по желанию)</span><input type="date" id="o-due"></label>' : '') +
     '<p class="err" id="o-err"></p><div class="actions">' + (ex ? '<button class="btn danger" id="o-del" type="button">Удалить</button>' : '') + '<button class="btn primary" id="o-save" type="button">Сохранить</button></div>',
   (el, close) => {
     const g = s => el.querySelector(s);
     g('#o-amt').value = e.amount === '' ? '' : String(e.amount).replace('.', ',');
     g('#o-title').value = e.title; g('#o-cat').value = e.cat; g('#o-date').value = e.date; g('#o-note').value = e.note;
     let debt = !!e.unpaid && !!p.flags.debts;
-    if (p.flags.debts) { g('#o-who').value = e.who || ''; g('#o-due').value = e.due || ''; }
+    g('#o-who').value = e.who || ''; if (p.flags.debts) g('#o-due').value = e.due || '';
+    if (g('#o-kg')) { g('#o-kg').value = e.kg > 0 ? String(r1(e.kg)).replace('.', ',') : ''; g('#o-pcs').value = e.pcs > 0 ? String(Math.round(e.pcs)) : ''; }
+    function paintWho() { g('#o-whos').innerHTML = whoList(p, type, g('#o-who').value).map(n => '<button type="button" class="chip" data-who="' + esc(n) + '">' + esc(n) + '</button>').join(''); }
+    function paintQ() {
+      const h = g('#o-qh'); if (!h) return;
+      const am = num(g('#o-amt').value), kg = num(g('#o-kg').value), pc = num(g('#o-pcs').value);
+      const t = [am > 0 && kg > 0 ? fmt(Math.round(am / kg)) + ' ₽ за кг' : '', kg > 0 && pc > 0 ? fmt(r1(kg / pc)) + ' кг на голову' : '', am > 0 && pc > 0 && !(kg > 0) ? fmt(Math.round(am / pc)) + ' ₽ за голову' : ''].filter(Boolean).join(' · ');
+      h.textContent = t; h.hidden = !t;
+    }
+    if (g('#o-kg')) { ['#o-amt', '#o-kg', '#o-pcs'].forEach(s2 => g(s2).addEventListener('input', paintQ)); paintQ(); }
+    g('#o-who').addEventListener('input', paintWho);
+    g('#o-whos').addEventListener('click', ev => { const b = ev.target.closest('[data-who]'); if (!b) return; g('#o-who').value = b.dataset.who; paintWho(); });
     const usedCats = t => { const s = new Set(CATS[t]); p.ledger.forEach(x => { if (x.type === t && x.cat) s.add(x.cat); }); return Array.from(s); };
     const cur = () => debt ? (type === 'in' ? 'din' : 'dout') : type;
     const paintType = () => {
       el.querySelectorAll('#o-type button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === cur())));
       g('#o-cats').innerHTML = chipsHTML(usedCats(type), g('#o-cat').value.trim());
+      g('#o-whol').textContent = debt ? (type === 'in' ? 'Кто вам должен' : 'Кому вы должны') : (type === 'in' ? 'Клиент, по желанию' : 'Поставщик, по желанию');
+      paintWho();
       if (p.flags.debts) {
-        g('#o-whowrap').hidden = !debt; g('#o-duewrap').hidden = !debt; g('#o-dhint').hidden = !debt;
-        g('#o-whol').textContent = type === 'in' ? 'Кто вам должен' : 'Кому вы должны';
+        g('#o-duewrap').hidden = !debt; g('#o-dhint').hidden = !debt;
         g('#o-dhint').textContent = 'Долг не считается доходом или расходом, пока его не оплатят. Потом отметьте оплату свайпом или кнопкой во вкладке «Долги».';
       }
     };
@@ -1190,6 +1258,9 @@ function opSheet(id, pre) {
       const unit = type === 'out' && it.cost > 0 ? it.cost : it.price;
       const total = Math.round(unit * q * 100) / 100;
       g('#o-amt').value = String(total).replace('.', ',');
+      if (g('#o-kg') && it.unit === 'кг') g('#o-kg').value = String(q).replace('.', ',');
+      if (g('#o-pcs') && /^(шт|гол)/.test(it.unit)) g('#o-pcs').value = String(Math.round(q));
+      if (g('#o-kg')) paintQ();
       h.textContent = fmt(unit) + ' ₽ × ' + fmt(q) + ' ' + it.unit + ' = ' + money(total) + (type === 'out' && it.cost > 0 ? ' (по закупочной цене)' : '');
       if (!g('#o-title').value.trim()) g('#o-title').value = (type === 'in' ? 'Продажа: ' : 'Закупка: ') + it.name.toLowerCase();
     }
@@ -1197,8 +1268,9 @@ function opSheet(id, pre) {
     g('#o-save').addEventListener('click', () => {
       const amount = num(g('#o-amt').value);
       if (amount <= 0) { g('#o-err').textContent = 'Введите сумму больше нуля.'; g('#o-amt').focus(); return; }
-      const rec = { id: ex ? ex.id : uid(), type, amount, title: g('#o-title').value.trim() || g('#o-cat').value.trim() || 'Без названия', cat: g('#o-cat').value.trim(), date: g('#o-date').value || todayISO(), note: g('#o-note').value.trim(), unpaid: debt, who: debt ? g('#o-who').value.trim() : '', due: debt ? g('#o-due').value : '' };
-      if (ex) Object.assign(ex, rec); else p.ledger.push(rec);
+      const rec = { id: ex ? ex.id : uid(), type, amount, title: g('#o-title').value.trim() || g('#o-cat').value.trim() || 'Без названия', cat: g('#o-cat').value.trim(), date: g('#o-date').value || todayISO(), note: g('#o-note').value.trim(), unpaid: debt, who: g('#o-who').value.trim(), due: debt && g('#o-due') ? g('#o-due').value : '' };
+      if (g('#o-kg')) { rec.kg = Math.round(num(g('#o-kg').value) * 1000) / 1000; rec.pcs = Math.round(num(g('#o-pcs').value)); }
+      if (ex) { if (ex.amount !== rec.amount) delete ex.full; Object.assign(ex, rec); } else p.ledger.push(rec);
       if (pre && pre.clearQty) ui.qty = {};
       if (!debt) ui.month = rec.date.slice(0, 7);
       if (debt && !(ui.tab === 'ledger')) { /* остаёмся там, где были */ }
@@ -1480,6 +1552,7 @@ function vHome(p) {
     (mods.ledger ? '<button class="mini-card" data-act="goTab" data-v="ledger"><small>Прибыль, ' + MONTHS[now.getMonth()] + '</small><strong style="' + (profit < 0 ? 'color:var(--loss)' : '') + '">' + (profit < 0 && !hideOn() ? '−' : '') + mny(Math.abs(profit)) + '</strong>' + (goal > 0 ? '<div class="meter" role="img" aria-label="Цель выполнена на ' + pct + '%"><i style="width:' + pct + '%"></i></div><span class="muted small">' + pct + '% от ' + mny(goal) + '</span>' : '<span class="muted small">Цель не задана</span>') + '</button>' : '') +
     '</div>' +
     '<div class="qa">' + (mods.ledger ? '<button class="in" data-act="addIncome"><span class="ico">' + ic('arrowin', 20) + '</span>Доход</button><button class="out" data-act="addExpense"><span class="ico">' + ic('arrowout', 20) + '</span>Расход</button>' : '') + (mods.planner ? '<button data-act="addTask"><span class="ico">' + ic('check', 20) + '</span>Задача</button>' : '') + (mods.notes ? '<button data-act="addNote"><span class="ico">' + ic('notes', 20) + '</span>Заметка</button>' : '') + '</div>' +
+    (mods.ledger && p.flags.qty ? (() => { const q = qtyMonth(p, today.slice(0, 7), 'in'); return q.n ? '<button class="mini-card wide" data-act="goTab" data-v="ledger"><small>Продано за ' + MONTHS[now.getMonth()] + '</small><strong>' + qParts(q) + '</strong>' + (q.perKg > 0 ? '<span class="muted small">в среднем ' + R0(q.perKg) + ' за кг</span>' : '') + '</button>' : ''; })() : '') +
     homeInsight(p) + (p.flags.debts && owed.length && mods.ledger ? '<button class="mini-card" data-act="openDebts"><small>Вам должны</small><strong>' + mny(owedSum) + '</strong><span class="muted small">' + owed.length + ' ' + plural(owed.length, ['должник', 'должника', 'должников']) + ', нажмите, чтобы открыть</span></button>' : '') +
     (mods.planner ? '<div class="card"><div class="sec-head"><h3 class="card-title">На сегодня</h3><button class="linkbtn" style="min-height:0;padding:0" data-act="goTab" data-v="today">Все</button></div>' + (open.length ? '<ul class="tasks">' + open.slice(0, 4).map(t => taskRow(p, t, today, today, tf.over.indexOf(t) >= 0)).join('') + '</ul>' : '<p class="muted" style="margin:6px 0 0">' + (all.length ? 'Всё сделано, можно выдохнуть.' : 'Добавьте задачу кнопкой выше.') + '</p>') + '</div>' : '') +
     (mods.notes && pinned.length ? '<div class="pinned"><h3 class="card-title" style="margin:0">Закреплено</h3>' + pinned.map(noteCard).join('') + '</div>' : '');
@@ -1549,7 +1622,7 @@ function debtRow(e, today) {
   const age = dayGap(e.date, today), late = e.due && e.due < today;
   const dd = e.due ? parseISO(e.due) : null;
   const sub = (e.due ? (late ? '<span class="late">просрочено на ' + dWord(dayGap(e.due, today)) + '</span>' : 'срок ' + dd.getDate() + ' ' + MONTHS_G[dd.getMonth()]) : (age > 0 ? dWord(age) + ' назад' : 'сегодня'));
-  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + '</b><span>' + sub + (e.note ? ' · ' + esc(e.note) : '') + '</span></span><span class="amt ' + e.type + '">' + mfmt(e.amount) + ' ₽</span></button>' +
+  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + '</b><span>' + sub + (qtyLine(e) ? ' · ' + qtyLine(e) : '') + (e.note ? ' · ' + esc(e.note) : '') + '</span></span><span class="amt ' + e.type + '">' + mfmt(e.amount) + ' ₽</span></button>' +
     '<div class="dact"><button class="btn sm primary" data-act="payDebt" data-id="' + e.id + '">Оплачено</button><button class="btn sm ghost" data-act="partDebt" data-id="' + e.id + '">Часть</button></div>';
   return swRow('op', e.id, { t: 'Оплачено', c: 'var(--gain)', i: 'check' }, { t: 'Удалить', c: 'var(--loss)', i: 'trash' }, inner, 'rowwrap');
 }
@@ -1563,7 +1636,8 @@ function vDebts(p) {
     const names = Object.keys(by).sort((a, b) => by[b].reduce((x, e) => x + e.amount, 0) - by[a].reduce((x, e) => x + e.amount, 0));
     return '<div class="dtitle">' + title + '</div>' + names.map(n => {
       const es = by[n].slice().sort((a, b) => a.date < b.date ? -1 : 1), tot = es.reduce((a, e) => a + e.amount, 0);
-      return '<div class="card pcard" data-k="p-' + t + '-' + esc(n) + '"><div class="phead"><b>' + esc(n) + '</b><span class="amt ' + t + ' num">' + mny(tot) + '</span></div><div>' + es.map(e => debtRow(e, today)).join('') + '</div>' +
+      const pq = qParts({ kg: es.reduce((a, e) => a + (e.kg || 0), 0), pcs: es.reduce((a, e) => a + (e.pcs || 0), 0) });
+      return '<div class="card pcard" data-k="p-' + t + '-' + esc(n) + '"><div class="phead"><b>' + esc(n) + (pq ? '<small class="pq">' + pq + '</small>' : '') + '</b><span class="amt ' + t + ' num">' + mny(tot) + '</span></div><div>' + es.map(e => debtRow(e, today)).join('') + '</div>' +
         (t === 'in' ? '<div class="pfoot"><button class="btn sm ghost" data-act="remind" data-who="' + esc(n) + '">Напомнить об оплате</button></div>' : '') + '</div>';
     }).join('');
   };
@@ -1574,7 +1648,8 @@ function vDebts(p) {
 function payDebt(e, amount) {
   const p = P(), snap = JSON.parse(JSON.stringify(e)); let extra = null, now = todayISO();
   if (amount > 0 && amount < e.amount - 0.004) {
-    extra = { id: uid(), type: e.type, amount, title: e.title + ' (часть)', cat: e.cat || '', date: now, note: e.who ? e.who : '', unpaid: false, who: '' };
+    extra = { id: uid(), type: e.type, amount, title: e.title + ' (часть)', cat: e.cat || '', date: now, note: '', unpaid: false, who: e.who || '' };
+    if (!e.full) e.full = e.amount;
     p.ledger.push(extra); e.amount = Math.round((e.amount - amount) * 100) / 100;
   } else { e.since = e.since || e.date; e.date = now; e.unpaid = false; }
   save();
@@ -1592,8 +1667,14 @@ function partSheet(id) {
 function opRow(e) {
   const ra = e.unpaid ? { t: 'Оплачено', c: 'var(--gain)', i: 'check' } : { t: 'Дубль на сегодня', c: 'var(--accent)', i: 'dup' };
   const la = { t: 'Удалить', c: 'var(--loss)', i: 'trash' };
-  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + (e.unpaid ? '<span class="pill ' + e.type + '">' + (e.type === 'in' ? 'должны вам' : 'вы должны') + '</span>' : '') + '</b><span>' + esc((e.unpaid && e.who ? [e.who, e.cat] : [e.cat, e.note]).filter(Boolean).join(' · ') || ' ') + '</span></span>' + (e.unpaid ? '<span class="amt pend">' + mfmt(e.amount) + ' ₽</span>' : '<span class="amt ' + e.type + '">' + (e.type === 'in' ? '+' : '−') + mfmt(e.amount) + ' ₽</span>') + '</button>';
+  const inner = '<button class="row" data-act="editOp" data-id="' + e.id + '"><span class="mid"><b>' + esc(e.title) + (e.unpaid ? '<span class="pill ' + e.type + '">' + (e.type === 'in' ? 'должны вам' : 'вы должны') + '</span>' : '') + '</b><span>' + esc([e.who, qtyLine(e), e.cat, e.note].filter(Boolean).join(' · ') || ' ') + '</span></span>' + (e.unpaid ? '<span class="amt pend">' + mfmt(e.amount) + ' ₽</span>' : '<span class="amt ' + e.type + '">' + (e.type === 'in' ? '+' : '−') + mfmt(e.amount) + ' ₽</span>') + '</button>';
   return swRow('op', e.id, ra, la, inner, 'rowwrap');
+}
+function qtyStrip(p, m) {
+  if (!p.flags.qty) return '';
+  const a = qtyMonth(p, m, 'in'), b = qtyMonth(p, m, 'out'); if (!a.n && !b.n) return '';
+  const row = (t, q) => '<div class="qrow"><span>' + t + '</span><b>' + qParts(q) + '</b>' + (q.perKg > 0 || q.perHead > 0 ? '<small>' + [q.perKg > 0 ? R0(q.perKg) + ' за кг' : '', q.perHead > 0 ? fmt(r1(q.perHead)) + ' кг на голову' : ''].filter(Boolean).join(' · ') + '</small>' : '') + '</div>';
+  return '<div class="card qcard">' + (a.n ? row('Продано', a) : '') + (b.n ? row('Закуплено', b) : '') + '</div>';
 }
 function ledListHTML(p) {
   let ent = p.ledger.filter(e => e.date.slice(0, 7) === ui.month);
@@ -1617,6 +1698,7 @@ function vLedger(p) {
   if (ui.led === 'debts' && p.flags.debts) return seg + vDebts(p);
   return seg + '<div class="monthnav" data-nav="month"><button class="icon-btn" data-act="monthPrev" aria-label="Прошлый месяц">' + ic('left') + '</button><h2 style="text-transform:capitalize">' + MONTHS[my[1] - 1] + ' ' + my[0] + '</h2><button class="icon-btn" data-act="monthNext" aria-label="Следующий месяц">' + ic('right') + '</button></div>' +
     '<div class="stats"><div class="stat"><small><i style="background:var(--gain)"></i>Доход</small><strong>' + mny(s.inn) + '</strong></div><div class="stat"><small><i style="background:var(--loss)"></i>Расход</small><strong>' + mny(s.out) + '</strong></div><div class="stat profit' + (profit < 0 ? ' neg' : '') + '"><small>Прибыль</small><strong>' + (profit < 0 && !hideOn() ? '−' : '') + mny(Math.abs(profit)) + '</strong></div></div>' +
+    qtyStrip(p, m) +
     (quick.length ? '<div><div class="muted small" style="margin:0 0 6px 2px">Быстрая запись одним нажатием</div><div class="quick">' + quick.map((o, i) => '<button class="chip" data-act="quickAdd" data-i="' + i + '">' + esc(o.title) + ' <small>' + (o.last.type === 'in' ? '+' : '−') + mfmt(o.last.amount) + '</small></button>').join('') + '</div></div>' : '') +
     (p.flags.chart && hasMonth ? '<div class="card"><h3 class="card-title">По дням</h3>' + chartSVG(s) + '</div>' : '') +
     (cats.list.length ? '<div class="card"><h3 class="card-title">Куда уходят деньги</h3>' + cats.list.slice(0, 5).map(c => '<div class="cat"><span>' + esc(c.cat) + '</span><span class="num muted">' + mfmt(c.sum) + ' ₽ · ' + Math.round(c.sum / cats.total * 100) + '%</span><div class="bar"><i style="width:' + Math.max(3, Math.round(c.sum / cats.total * 100)) + '%"></i></div></div>').join('') + '</div>' : '') +
@@ -1715,6 +1797,27 @@ const DAY_DONE = ['День закрыт. GG.', 'Всё сделано. Чист
 const dayOfYear = () => { const n = new Date(); return Math.floor((n - new Date(n.getFullYear(), 0, 0)) / 864e5); };
 const quoteHTML = () => poeticOn() ? '<p class="quote">' + esc(QUOTES[dayOfYear() % QUOTES.length]) + '</p>' : '';
 const R0 = n => mny(Math.round(n));
+const r1 = n => Math.round(n * 10) / 10;
+const kgf = n => fmt(r1(n)) + ' кг', pcsf = n => fmt(Math.round(n)) + ' гол.';
+const qtyLine = e => [e.kg > 0 ? kgf(e.kg) : '', e.pcs > 0 ? pcsf(e.pcs) : ''].filter(Boolean).join(' · ');
+const qParts = q => [q.kg > 0 ? kgf(q.kg) : '', q.pcs > 0 ? pcsf(q.pcs) : ''].filter(Boolean).join(' · ');
+function qtyFindings(I, f) {
+  const a = I.qIn, b = I.qInP, o = I.qOut;
+  if (a.kg > 0 || a.pcs > 0) {
+    const main = a.kg > 0 ? 'kg' : 'pcs', unit = main === 'kg' ? kgf : pcsf;
+    let t = 'За месяц продано ' + (a.kg > 0 ? kgf(a.kg) + (a.pcs > 0 ? ' (' + pcsf(a.pcs) + ')' : '') : pcsf(a.pcs));
+    if (I.day >= 3 && I.day < I.dim && b[main] > 0) { const fc = a[main] / I.day * I.dim, d = Math.round((fc - b[main]) / b[main] * 100); t += '. Темп ведёт к ' + unit(fc) + ' при ' + unit(b[main]) + ' в прошлом месяце (' + (d >= 0 ? '+' : '−') + Math.abs(d) + '%)'; }
+    else if (b[main] > 0) t += ', в прошлом месяце ' + unit(b[main]);
+    f.push({ k: 'info', t: t + '.' });
+  }
+  if (a.perKg > 0) {
+    let t = 'Средняя цена продажи ' + R0(a.perKg) + ' за кг';
+    if (I.qInP.perKg > 0) { const d = Math.round((a.perKg - I.qInP.perKg) / I.qInP.perKg * 100); if (d) t += ', ' + (d > 0 ? 'на ' + d + '% выше' : 'на ' + (-d) + '% ниже') + ' прошлого месяца'; }
+    if (o.perKg > 0) t += '. Закупка в среднем ' + R0(o.perKg) + ' за кг, на каждом кг остаётся ' + R0(a.perKg - o.perKg) + ' до прочих расходов';
+    f.push({ k: o.perKg > 0 && a.perKg <= o.perKg ? 'warn' : 'info', t: t + '.' });
+  }
+
+}
 function findings(I) {
   const f = [];
   if (I.forecast != null) {
@@ -1741,8 +1844,9 @@ function findings(I) {
   if (I.owedSum > 0) f.push({ k: I.oldest > 14 ? 'warn' : 'info', t: 'Вам должны ' + R0(I.owedSum) + ' (' + I.owedN + ' ' + plural(I.owedN, ['долг', 'долга', 'долгов']) + '). Самому старому ' + I.oldest + ' ' + plural(I.oldest, ['день', 'дня', 'дней']) + '.' });
   if (I.tr.planned >= 5) f.push({ k: I.tr.pct >= 80 ? 'good' : I.tr.pct < 50 ? 'warn' : 'info', t: 'За последние 7 дней закрыто ' + I.tr.done + ' из ' + I.tr.planned + ' запланированных задач (' + I.tr.pct + '%).' });
   if (I.hot) f.push({ k: 'good', t: 'Серия «' + I.hot.title + '»: ' + I.hot.n + ' ' + plural(I.hot.n, ['день', 'дня', 'дней']) + ' подряд. Не рвите цепочку.' });
+  if (S && S.settings.flags.qty) qtyFindings(I, f);
   const rank = { warn: 0, good: 1, info: 2 };
-  return f.map((x, i) => [x, i]).sort((a, b) => rank[a[0].k] - rank[b[0].k] || a[1] - b[1]).map(a => a[0]).slice(0, 7);
+  return f.map((x, i) => [x, i]).sort((a, b) => rank[a[0].k] - rank[b[0].k] || a[1] - b[1]).map(a => a[0]).slice(0, 10);
 }
 function headline(I, F) {
   const sub = (F.find(x => x.p) || F[0] || {}).t || '';
@@ -1799,6 +1903,19 @@ function vInsights(p) {
     (I.goal > 0 ? '<div class="meter" style="margin-top:12px" role="img" aria-label="Цель выполнена на ' + Math.max(0, Math.min(100, Math.round(I.profit / I.goal * 100))) + '%"><i style="width:' + Math.max(0, Math.min(100, I.profit / I.goal * 100)) + '%"></i></div><div class="muted small" style="margin-top:6px">Цель ' + mny(I.goal) + '</div>' : '') +
     '<div style="margin-top:14px">' + monthsSVG(M, I.m) + '</div>' +
     (I.goalSuggest > 0 && I.goalSuggest !== I.goal ? '<div class="note-box" style="margin-top:12px"><span>' + V('Три последних полных месяца дали в среднем ', 'Средняя прибыль за три последних месяца: ') + mny(Math.round(I.avg3)) + '. Цель с запасом на десять процентов: ' + mny(I.goalSuggest) + '.</span><button class="btn sm primary" style="margin-top:10px" data-act="setGoal" data-v="' + I.goalSuggest + '">Поставить ' + mny(I.goalSuggest) + '</button></div>' : '') + '</div>';
+  if (p.flags.qty && (I.qIn.n || I.qOut.n)) {
+    const cmp = (x, y) => y > 0 ? '<small class="muted"> · было ' + (typeof x === 'string' ? x : '') + '</small>' : '';
+    const rows = [];
+    if (I.qIn.n) rows.push(['Продано', qParts(I.qIn) + (I.qInP.n ? '<small class="muted"> · было ' + qParts(I.qInP) + '</small>' : '')]);
+    if (I.qIn.perKg > 0) rows.push(['Средняя цена продажи', R0(I.qIn.perKg) + ' / кг' + (I.qInP.perKg > 0 ? '<small class="muted"> · было ' + R0(I.qInP.perKg) + '</small>' : '')]);
+    if (I.qIn.perHead > 0) rows.push(['Средний вес головы', fmt(r1(I.qIn.perHead)) + ' кг']);
+    if (I.qOut.n) rows.push(['Закуплено', qParts(I.qOut) + (I.qOutP.n ? '<small class="muted"> · было ' + qParts(I.qOutP) + '</small>' : '')]);
+    if (I.qOut.perKg > 0) rows.push(['Закупочная цена', R0(I.qOut.perKg) + ' / кг']);
+    out += '<div class="card"><div class="sec-head"><h3 class="card-title">Вес и головы</h3><span class="muted small">' + MONTHS[Number(I.m.slice(5, 7)) - 1] + '</span></div>' + rows.map(r => '<div class="rrow"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('') + '</div>';
+  }
+  if (I.clients.length) {
+    out += '<div class="card"><div class="sec-head"><h3 class="card-title">Клиенты</h3><span class="muted small">' + MONTHS[Number(I.m.slice(5, 7)) - 1] + '</span></div>' + I.clients.slice(0, 6).map(c => { const q = p.flags.qty ? qParts(c) : ''; return '<div class="crow"><div><b>' + esc(c.who) + '</b><small>' + [q, c.n + ' ' + plural(c.n, ['продажа', 'продажи', 'продаж']), c.owed > 0 ? 'долг ' + mny(c.owed) : ''].filter(Boolean).join(' · ') + '</small></div><span class="num">' + mny(c.sum) + '</span></div>'; }).join('') + '</div>';
+  }
   out += '<div class="card"><h3 class="card-title">' + V('Что показывают цифры', 'Выводы') + '</h3>' + (F.length ? F.map(x => '<div class="fnd ' + x.k + '"><i></i><span>' + esc(x.t) + '</span></div>').join('') : '<p class="muted" style="margin:0">' + V('Выводы вырастут из записей. Пара операций, и Темп начнёт говорить.', 'Пока нечего сравнивать. Внесите операции и задачи.') + '</p>') + '</div>';
   out += '<div class="card"><div class="sec-head"><h3 class="card-title">' + V('Три слота недели', 'Фокус недели') + '</h3><span class="muted small">' + plan.filter(x => x.done).length + ' из ' + plan.length + '</span></div>' +
     (plan.length ? '<div class="tasks">' + plan.map(x => focusRow(x, ws)).join('') + '</div>' : '<p class="muted small" style="margin:0 0 4px">' + V('Три главные вещи, ради которых неделя состоится. Как слоты в инвентаре: больше не влезет, и это хорошо.', 'Не больше трёх главных целей на эту неделю.') + '</p>') +
@@ -1854,9 +1971,10 @@ function vSettings(p) {
   const sOff = !st.swipes;
   const gateLbl = { bio: 'Face ID / Touch ID', pin: 'Код из 4 цифр', none: 'Без защиты', password: 'Только пароль' };
   const gcur = prefs.gate || 'password', stale = bkAge() === null || bkAge() >= 7;
+  const pinFix = gcur === 'bio' && !prefs.pinHash ? '<button class="btn sm" data-act="addPin">Добавить запасной код</button>' : '';
   const securityCards = session.demo ? '' :
     '<div class="card stack"><h3 class="card-title" style="margin:0">Вход</h3><div class="seg" style="margin:0">' + [bioAvail ? ['bio', 'Face ID'] : null, ['pin', 'Код'], ['none', 'Без защиты'], ['password', 'Пароль']].filter(Boolean).map(a => '<button data-act="setGate" data-v="' + a[0] + '" aria-pressed="' + (gcur === a[0]) + '">' + a[1] + '</button>').join('') + '</div>' +
-    '<p class="muted small" style="margin:0">' + ({ bio: 'Темп открывается по Face ID или Touch ID. Пароль нужен только на новом телефоне.', pin: 'Темп открывается по коду. Пароль нужен только на новом телефоне.', none: 'Темп открывается сразу. Данные всё равно зашифрованы на устройстве.', password: 'Пароль спрашивается при каждом открытии. Включите Face ID или код, чтобы открывать быстрее.' })[gcur] + '</p>' + (gcur === 'pin' ? '<button class="btn" data-act="changePin">Сменить код</button>' : '') + '</div>' +
+    '<p class="muted small" style="margin:0">' + ({ bio: 'Темп открывается по Face ID, а если не узнал, по коду. Пароль нужен только на новом телефоне.', pin: 'Темп открывается по коду. Пароль нужен только на новом телефоне.', none: 'Темп открывается сразу. Данные всё равно зашифрованы на устройстве.', password: 'Пароль спрашивается при каждом открытии. Включите Face ID или код, чтобы открывать быстрее.' })[gcur] + '</p>' + pinFix + (gcur === 'pin' ? '<button class="btn" data-act="changePin">Сменить код</button>' : '') + '</div>' +
     '<div class="card stack"><h3 class="card-title" style="margin:0">Копии и обновления</h3><div class="bk-status' + (stale ? ' warn' : '') + '">' + bkLabel() + '</div>' +
     '<button class="btn primary" data-act="saveBackup">Сохранить копию</button><p class="muted small" style="margin:0">Откроется меню «Поделиться»: выберите «Сохранить в Файлы» или отправьте файл себе в Telegram. Копия зашифрована вашим паролем.</p>' +
     '<button class="btn" data-act="restoreFile">Восстановить из файла</button><button class="btn" data-act="snaps">Автокопии на этом телефоне</button>' +
@@ -1873,7 +1991,7 @@ function vSettings(p) {
     '<div class="f" style="margin:14px 0 6px"><span>Блокировать после ухода из приложения</span></div><div class="seg" style="margin:0">' + [[0, 'Никогда'], [1, '1 мин'], [5, '5 мин'], [15, '15 мин']].map(a => '<button data-act="autolock" data-v="' + a[0] + '" aria-pressed="' + (st.autolock === a[0]) + '">' + a[1] + '</button>').join('') + '</div></div>' +
     '<div class="card"><h3 class="card-title">Проект</h3><label class="f"><span>Название</span><input id="s-name" autocomplete="off" value="' + esc(p.name) + '"></label><label class="f"><span>Цель по прибыли за месяц, ₽ (0 — выключено)</span><input id="s-goal" inputmode="numeric" autocomplete="off" value="' + (p.goal || '') + '" placeholder="Например: 300000"></label><div class="f" style="margin-bottom:0"><span>Цвет</span></div><div class="swatches" style="margin-top:6px">' + COLORS.map(c => '<button style="--c:' + c + '" data-act="setColor" data-v="' + c + '" aria-pressed="' + (c === p.color) + '" aria-label="Цвет ' + c + '"></button>').join('') + '</div></div>' +
     '<div class="card"><h3 class="card-title">Разделы проекта</h3>' + sw('modules.home', 'Главная', '', m.home) + sw('modules.planner', 'Ежедневник', '', m.planner) + sw('modules.ledger', 'Учёт доходов и расходов', '', m.ledger) + sw('modules.calc', 'Прайс и калькулятор', '', m.calc) + sw('modules.insights', 'Итоги, выводы и планы', 'Прогноз месяца, рекорды, фокус и разбор недели', m.insights) + sw('modules.notes', 'Блокноты', '', m.notes) + '</div>' +
-    '<div class="card"><h3 class="card-title">Функции</h3>' + sw('set.poetic', 'Живые тексты', 'Цитаты дня, подбадривания и характер. Выключите, и останутся сухие формулировки', st.poetic) + sw('flags.suggest', 'Подсказки из истории', 'Предлагают повторить прошлую запись, пока вы печатаете', f.suggest) + sw('flags.quick', 'Быстрые записи', 'Частые операции одним нажатием в учёте', f.quick) + sw('flags.star', 'Важные задачи', 'Звёздочка и приоритет в списке', f.star) + sw('flags.streaks', 'Серии выполнения', 'Сколько дней подряд сделана повторяющаяся задача', f.streaks) + sw('flags.debts', 'Долги', 'Пометка «не оплачено» и список должников', f.debts) + sw('flags.chart', 'График по дням', '', f.chart) + sw('flags.cats', 'Расходы по категориям', '', f.cats) + sw('flags.margin', 'Закупка и прибыль в прайсе', '', f.margin) + '</div>' +
+    '<div class="card"><h3 class="card-title">Функции</h3>' + sw('set.poetic', 'Живые тексты', 'Цитаты дня, подбадривания и характер. Выключите, и останутся сухие формулировки', st.poetic) + sw('flags.suggest', 'Подсказки из истории', 'Предлагают повторить прошлую запись, пока вы печатаете', f.suggest) + sw('flags.quick', 'Быстрые записи', 'Частые операции одним нажатием в учёте', f.quick) + sw('flags.star', 'Важные задачи', 'Звёздочка и приоритет в списке', f.star) + sw('flags.streaks', 'Серии выполнения', 'Сколько дней подряд сделана повторяющаяся задача', f.streaks) + sw('flags.debts', 'Долги', 'Пометка «не оплачено» и список должников', f.debts) + sw('flags.qty', 'Вес и головы', 'Поля «кг» и «голов» в записях. Итоги считают их отдельно от денег', f.qty) + sw('flags.chart', 'График по дням', '', f.chart) + sw('flags.cats', 'Расходы по категориям', '', f.cats) + sw('flags.margin', 'Закупка и прибыль в прайсе', '', f.margin) + '</div>' +
     '<div class="card stack"><h3 class="card-title" style="margin:0">О приложении</h3><p class="muted small" style="margin:0">' + (isStandalone() ? 'Установлено как приложение. Работает без интернета.' : 'Сейчас открыто в браузере. Чтобы приложение открывалось с иконки, добавьте его на экран «Домой».') + '</p><a class="btn" href="legal.html" target="_blank" rel="noopener">Условия и конфиденциальность</a></div>' +
     '<div class="card"><h3 class="card-title">Скоро</h3>' + sw('x1', 'Налоги и отчётность', 'Расчёт взносов и налогов по вашему режиму', false, true) + sw('x2', 'Маркировка и ветдокументы', 'Честный знак, Меркурий', false, true) + '</div>' +
     '<div class="card stack"><h3 class="card-title" style="margin:0">Защита данных</h3><p class="muted small" style="margin:0">Записи шифруются на этом устройстве ключом из вашего пароля (AES-256). В хранилище лежит только шифротекст, поэтому без пароля или ключа восстановления его не прочитает никто, включая нас. Это значит, что восстановить забытый пароль мы не сможем.</p>' +
@@ -1929,6 +2047,7 @@ function countUp(root) {
 }
 
 function render() {
+  if (S && S.settings && S.settings.flags) S.projects.forEach(p => { p.flags = S.settings.flags; p.modules = S.settings.modules; });
   if (!S || ui.recovery) { prevR = null; return renderLock(); }
   if (ui.gateSetup && !session.demo) { prevR = null; return renderGate(); }
   const p = P(), tabsEl = $('#tabs'), app = $('#app');
@@ -1982,17 +2101,18 @@ function renderLock() {
   const quick = !!(vault && devReady && prefs.gate && prefs.gate !== 'password' && ui.mode !== 'pw' && ui.mode !== 'forgot');
   const mode = !vault ? 'setup' : ui.mode === 'forgot' ? 'forgot' : quick ? 'quick' : 'unlock';
   const err = ui.error ? '<p class="err">' + esc(ui.error) + '</p>' : '';
-  const pitch = '<div class="brand">' + tileHTML(pr, true) + '<div><h1>Темп</h1><p style="margin-top:8px">' + (mode === 'quick' ? greeting(new Date().getHours()) + ', ' + esc(pr.name) : mode === 'unlock' ? esc(pr.name) + ', данные зашифрованы на этом устройстве.' : 'Учёт, задачи и блокноты для вашего дела. Всё шифруется на этом устройстве.') + '</p></div></div>';
+  const pitch = mode === 'quick' ? '<div class="qhead">' + tileHTML(pr, false) + '<div><b>' + greeting(new Date().getHours()) + ', ' + esc(pr.name) + '</b><span>Темп</span></div></div>' : '<div class="brand">' + tileHTML(pr, true) + '<div><h1>Темп</h1><p style="margin-top:8px">' + (mode === 'quick' ? greeting(new Date().getHours()) + ', ' + esc(pr.name) : mode === 'unlock' ? esc(pr.name) + ', данные зашифрованы на этом устройстве.' : 'Учёт, задачи и блокноты для вашего дела. Всё шифруется на этом устройстве.') + '</p></div></div>';
   let form = '', qbox = '';
+  const hasPin = !!prefs.pinHash, hasBio = prefs.gate === 'bio' && !!prefs.credId, padMode = mode === 'quick' && (prefs.gate === 'pin' || prefs.gate === 'bio') && hasPin;
   if (mode === 'quick') {
-    if (prefs.gate === 'bio') qbox = '<div class="qbox"><button class="bio-btn" id="q-bio" aria-label="Открыть по Face ID">' + ic('face', 44) + '</button><div class="muted">Открыть по Face ID</div>' + err + '<button class="linkbtn" id="l-pw">Войти по паролю</button></div>';
-    else if (prefs.gate === 'pin') qbox = '<div class="qbox"><div class="pin-dots" id="pin-dots">' + [0, 1, 2, 3].map(i => '<i></i>').join('') + '</div>' + err + '<div class="pad" id="pad">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => '<button data-k="' + n + '">' + n + '</button>').join('') + '<span></span><button data-k="0">0</button><button data-k="del" aria-label="Стереть">' + ic('back', 22) + '</button></div><button class="linkbtn" id="l-pw">Забыли код? Войти по паролю</button></div>';
+    if (padMode) qbox = '<div class="qbox qlock"><div class="pin-dots" id="pin-dots"><i></i><i></i><i></i><i></i></div><p class="qmsg" id="q-msg">' + esc(ui.error || (hasBio ? 'Face ID или код' : 'Введите код')) + '</p>' + padHTML(hasBio) + '<button class="linkbtn" id="l-pw">Забыли код? Войти по паролю</button></div>';
+    else if (prefs.gate === 'bio') qbox = '<div class="qbox"><button class="bio-btn" id="q-bio" aria-label="Открыть по Face ID">' + ic('face', 44) + '</button><div class="muted">Открыть по Face ID</div>' + err + '<button class="linkbtn" id="l-pw">Войти по паролю</button></div>';
     else qbox = '<div class="qbox"><button class="btn primary" id="q-open" style="width:100%">Открыть</button>' + err + '<button class="linkbtn" id="l-pw">Войти по паролю</button></div>';
   }
   if (mode === 'setup') form = '<h2 style="font-size:16px;margin-bottom:14px">Придумайте пароль</h2><label class="f"><span>Пароль, от 8 символов</span><input id="l-p1" type="password" autocomplete="new-password"></label><label class="f"><span>Повторите пароль</span><input id="l-p2" type="password" autocomplete="new-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Шифруем…' : 'Создать хранилище') + '</button><button class="linkbtn" id="l-restore">У меня есть файл копии</button><button class="linkbtn" id="l-demo">Сначала посмотреть демо</button>';
-  else if (mode === 'unlock') form = '<h2 style="font-size:16px;margin-bottom:14px">Откройте Темп</h2><label class="f"><span>Пароль</span><input id="l-p1" type="password" autocomplete="current-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Открываем…' : 'Открыть') + '</button><button class="linkbtn" id="l-forgot">Забыли пароль?</button><button class="linkbtn" id="l-restore">У меня есть файл копии</button><button class="linkbtn" id="l-demo">Посмотреть демо</button>';
+  else if (mode === 'unlock') form = '<h2 style="font-size:16px;margin-bottom:14px">Откройте Темп</h2><label class="f"><span>Пароль</span><input id="l-p1" type="password" autocomplete="current-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Открываем…' : 'Открыть') + '</button><button class="linkbtn" id="l-forgot">Забыли пароль?</button><button class="linkbtn" id="l-restore">У меня есть файл копии</button>';
   else form = '<h2 style="font-size:16px;margin-bottom:14px">Вход по ключу</h2><label class="f"><span>Ключ восстановления</span><input id="l-rk" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"></label><label class="f"><span>Новый пароль, от 8 символов</span><input id="l-p1" type="password" autocomplete="new-password"></label>' + err + '<button class="btn primary" id="l-go" style="width:100%">' + (ui.busy ? 'Проверяем…' : 'Войти и сменить пароль') + '</button><button class="linkbtn" id="l-back">Назад</button>';
-  app.innerHTML = '<div class="lock">' + pitch + installHTML(mode) + (mode === 'quick' ? qbox : '<form class="sheetpaper" id="l-form" novalidate>' + form + '</form>') + '<a class="legal-link" href="legal.html" target="_blank" rel="noopener">Условия и конфиденциальность</a></div>';
+  app.innerHTML = '<div class="lock' + (mode === 'quick' ? ' q' : '') + '">' + pitch + installHTML(mode) + (mode === 'quick' ? qbox : '<form class="sheetpaper" id="l-form" novalidate>' + form + '</form>') + '<a class="legal-link" href="legal.html" target="_blank" rel="noopener">Условия и конфиденциальность</a></div>';
   wireInstall();
   const enter = enterSession;
   const afterPass = async (u, vlt) => {
@@ -2028,13 +2148,17 @@ function renderLock() {
   if ($('#l-form')) { $('#l-form').addEventListener('submit', go); $('#l-go').addEventListener('click', go); }
   const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
   const failQuick = m => { ui.error = m; renderLock(); };
-  const tryBio = async silent => { try { await quickOpen(false); } catch (e) { if (!silent) failQuick('Не получилось. Попробуйте ещё раз или войдите по паролю.'); } };
+  const tryBio = async silent => {
+    const m = $('#q-msg'); if (m) m.textContent = 'Смотрите на экран…';
+    try { await quickOpen(false); } catch (e) { const m2 = $('#q-msg'); if (m2) m2.textContent = silent ? 'Face ID или код' : 'Не узнал. Введите код'; else if (!silent) failQuick('Не получилось. Попробуйте ещё раз или войдите по паролю.'); }
+  };
   on('#q-bio', () => tryBio(false));
   on('#q-open', async () => { try { await quickOpen(true); } catch (e) { devReady = false; renderLock(); } });
   on('#l-pw', () => { ui.mode = 'pw'; ui.error = ''; renderLock(); });
   on('#l-restore', () => pickBackup(v => restoreSheet(v)));
   if (mode === 'quick' && prefs.gate === 'bio' && ui.autoBio) { ui.autoBio = false; tryBio(true); }
-  if (mode === 'quick' && prefs.gate === 'pin') padWire($('#pad'), $('#pin-dots'), async v => {
+  if (padMode && $('#pad')) $('#pad')._bio = () => tryBio(false);
+  if (padMode) padWire($('#pad'), $('#pin-dots'), async v => {
     let ok = false; try { ok = (await pinHash(v, prefs.pinSalt)) === prefs.pinHash; } catch (e) { ok = false; }
     if (ok) { try { await quickOpen(true); return true; } catch (e) { devReady = false; renderLock(); return true; } }
     ui.fails++; if (ui.fails >= 5) { ui.mode = 'pw'; ui.error = 'Слишком много попыток. Введите пароль.'; ui.fails = 0; renderLock(); return true; }
@@ -2048,12 +2172,13 @@ function selectNode(n) { try { const r = document.createRange(); r.selectNodeCon
 
 
 /* ---------- цифровая клавиатура ---------- */
-const padHTML = () => '<div class="pad" id="pad">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => '<button type="button" data-k="' + n + '">' + n + '</button>').join('') + '<span></span><button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Стереть">' + ic('back', 22) + '</button></div>';
+const padHTML = bio => '<div class="pad" id="pad">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => '<button type="button" data-k="' + n + '">' + n + '</button>').join('') + (bio ? '<button type="button" class="pk-bio" data-k="bio" aria-label="Открыть по Face ID">' + ic('face', 30) + '</button>' : '<span></span>') + '<button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Стереть">' + ic('back', 22) + '</button></div>';
 function padWire(pad, dots, onDone) {
   if (!pad) return; let v = '', busy = false;
   const paint = () => dots.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i < v.length));
   const press = async k => {
     if (busy) return;
+    if (k === 'bio') { if (pad._bio) pad._bio(); return; }
     if (k === 'del') { v = v.slice(0, -1); paint(); return; }
     if (v.length >= 4) return; v += k; paint(); buzz(6);
     if (v.length === 4) {
@@ -2066,9 +2191,11 @@ function padWire(pad, dots, onDone) {
   const kd = ev => { if (!pad.isConnected) { document.removeEventListener('keydown', kd); return; } if (/^\d$/.test(ev.key)) press(ev.key); else if (ev.key === 'Backspace') press('del'); };
   document.addEventListener('keydown', kd);
 }
-async function applyGate(g, pin) {
-  if (g === 'bio') prefs.credId = await bioCreate();
-  if (g === 'pin') { prefs.pinSalt = b64(rnd(12)); prefs.pinHash = await pinHash(pin, prefs.pinSalt); }
+async function applyGate(g, o) {
+  o = o || {};
+  if (g === 'bio' && !o.credId) o.credId = await bioCreate();
+  if (o.credId) { prefs.credId = o.credId; prefs.bioOk = true; }
+  if (o.pin) { prefs.pinSalt = b64(rnd(12)); prefs.pinHash = await pinHash(o.pin, prefs.pinSalt); }
   if (g !== 'password') await devEnroll(session.vault, session.raw); else await devClear();
   prefs.gate = g; savePrefs();
 }
@@ -2079,15 +2206,22 @@ function renderGate() {
   const err = gs.err ? '<p class="err" style="text-align:center">' + esc(gs.err) + '</p>' : '';
   if (gs.step === 'choose') {
     app.innerHTML = '<div class="lock"><div class="brand"><h1>Как входить?</h1><p>Пароль понадобится только на новом телефоне. Здесь можно открывать быстрее.</p></div><div class="stack">' +
-      (bioAvail ? opt('bio', 'Face ID / Touch ID', 'Открывается взглядом или пальцем', 'face') : '') + opt('pin', 'Код из 4 цифр', 'Быстро и привычно', 'keypad') + opt('none', 'Без защиты', 'Открывается сразу, если телефон и так под паролем', 'unlock') + '</div>' + err +
+      (bioAvail ? opt('bio', 'Face ID + код', 'Открывается взглядом. Не узнал, тогда код', 'face') : '') + opt('pin', 'Код из 4 цифр', 'Быстро и привычно', 'keypad') + opt('none', 'Без защиты', 'Открывается сразу, если телефон и так под паролем', 'unlock') + '</div>' + err +
       '<button class="btn primary" id="g-go" style="width:100%">Продолжить</button><button class="linkbtn" id="g-pw" style="text-align:center">Оставить только пароль</button></div>';
     app.querySelectorAll('.gopt').forEach(b => b.addEventListener('click', () => { gs.c = b.dataset.g; gs.err = ''; renderGate(); }));
     const finish = async g => { await applyGate(g); ui.gateSetup = false; ui.gs = null; render(); toast(g === 'none' ? 'Готово: Темп открывается сразу' : g === 'password' ? 'Готово: вход только по паролю' : 'Готово: вход настроен'); };
     $('#g-pw').addEventListener('click', () => finish('password').catch(() => { ui.gateSetup = false; render(); }));
     $('#g-go').addEventListener('click', async () => {
-      if (gs.c === 'pin') { gs.step = 'pin1'; gs.err = ''; renderGate(); return; }
+      if (gs.c === 'pin' || gs.c === 'bio') { gs.step = 'pin1'; gs.err = ''; renderGate(); return; }
       try { await finish(gs.c); } catch (e) { gs.err = gs.c === 'bio' ? 'Face ID не включился. Выберите код или попробуйте ещё раз.' : 'Не получилось. Попробуйте другой вариант.'; renderGate(); }
     });
+    return;
+  }
+  if (gs.step === 'bio') {
+    app.innerHTML = '<div class="lock"><div class="brand"><h1>Face ID</h1><p>Последний шаг. Нажмите, и телефон спросит разрешение. Дальше Темп будет открываться взглядом, а код останется запасным.</p></div><div class="qbox"><button class="bio-btn" id="g-bio" aria-label="Включить Face ID">' + ic('face', 44) + '</button>' + err + '<button class="btn primary" id="g-bio2" style="width:100%">Включить Face ID</button><button class="linkbtn" id="g-skip">Пропустить, входить по коду</button></div></div>';
+    const doBio = async () => { try { const credId = await bioCreate(); await applyGate('bio', { pin: gs.pin, credId }); ui.gateSetup = false; ui.gs = null; render(); toast('Готово: Face ID и код'); } catch (e) { gs.err = 'Face ID не включился. Попробуйте ещё раз или пропустите.'; renderGate(); } };
+    $('#g-bio').addEventListener('click', doBio); $('#g-bio2').addEventListener('click', doBio);
+    $('#g-skip').addEventListener('click', async () => { try { await applyGate('pin', { pin: gs.pin }); } catch (e) { /* ignore */ } ui.gateSetup = false; ui.gs = null; render(); toast('Готово: вход по коду'); });
     return;
   }
   app.innerHTML = '<div class="lock"><div class="brand"><h1>' + (gs.step === 'pin1' ? 'Придумайте код' : 'Повторите код') + '</h1><p>' + (gs.step === 'pin1' ? 'Четыре цифры. Забудете, войдёте по паролю.' : 'Ещё раз, чтобы не ошибиться.') + '</p></div><div class="qbox"><div class="pin-dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>' + err + padHTML() + '<button class="linkbtn" id="g-back">Назад</button></div></div>';
@@ -2095,18 +2229,28 @@ function renderGate() {
   padWire($('#pad'), $('#pin-dots'), async v => {
     if (gs.step === 'pin1') { gs.p1 = v; gs.step = 'pin2'; gs.err = ''; renderGate(); return true; }
     if (v !== gs.p1) { gs.step = 'pin1'; gs.p1 = ''; gs.err = 'Коды не совпали. Начнём заново.'; renderGate(); return true; }
-    try { await applyGate('pin', v); ui.gateSetup = false; ui.gs = null; render(); toast('Готово: вход по коду'); } catch (e) { gs.step = 'choose'; gs.err = 'Не получилось сохранить код.'; renderGate(); }
+    if (gs.c === 'bio') { gs.pin = v; gs.step = 'bio'; gs.err = ''; renderGate(); return true; }
+    try { await applyGate('pin', { pin: v }); ui.gateSetup = false; ui.gs = null; render(); toast('Готово: вход по коду'); } catch (e) { gs.step = 'choose'; gs.err = 'Не получилось сохранить код.'; renderGate(); }
     return true;
   });
 }
-function pinSheet() {
+function pinSheet(next) {
   let step = 1, p1 = '';
   sheet(head('Новый код') + '<div class="qbox"><p class="muted" id="ps-t" style="margin:0">Придумайте код из 4 цифр</p><div class="pin-dots" id="pin-dots"><i></i><i></i><i></i><i></i></div>' + padHTML() + '</div>',
     (el, close) => {
       padWire(el.querySelector('#pad'), el.querySelector('#pin-dots'), async v => {
         if (step === 1) { p1 = v; step = 2; el.querySelector('#ps-t').textContent = 'Повторите код'; return 'reset'; }
         if (v !== p1) { step = 1; p1 = ''; el.querySelector('#ps-t').textContent = 'Не совпало. Придумайте код ещё раз'; return false; }
-        try { await applyGate('pin', v); close(); render(); toast('Код сохранён'); } catch (e) { toast('Не получилось сохранить код'); }
+        if (next === 'keep' || next === 'bio') { prefs.pinSalt = b64(rnd(12)); prefs.pinHash = await pinHash(v, prefs.pinSalt); savePrefs(); }
+        if (next === 'keep') { close(); render(); toast('Запасной код добавлен'); return true; }
+        if (next === 'bio') {
+          const box = el.querySelector('.qbox');
+          box.innerHTML = '<p class="muted" style="margin:0;text-align:center">Код сохранён. Теперь Face ID</p><button class="bio-btn" id="ps-bio" aria-label="Включить Face ID">' + ic('face', 44) + '</button><button class="btn primary" id="ps-bio2" style="width:100%">Включить Face ID</button><p class="err" id="ps-err"></p>';
+          const doBio = async () => { try { await applyGate('bio'); close(); render(); toast('Готово: Face ID и код'); } catch (e) { box.querySelector('#ps-err').textContent = 'Face ID не включился. Попробуйте ещё раз.'; } };
+          box.querySelector('#ps-bio').addEventListener('click', doBio); box.querySelector('#ps-bio2').addEventListener('click', doBio);
+          return true;
+        }
+        try { await applyGate('pin', { pin: v }); close(); render(); toast('Код сохранён'); } catch (e) { toast('Не получилось сохранить код'); }
         return true;
       });
     });
@@ -2151,10 +2295,12 @@ const A = {
   setGate: async b => {
     const g = b.dataset.v; if (g === (prefs.gate || 'password')) return;
     if (g === 'pin') { pinSheet(); return; }
-    try { await applyGate(g); render(); toast(g === 'bio' ? 'Вход по Face ID включён' : g === 'none' ? 'Темп открывается сразу' : 'Вход только по паролю'); } catch (e) { toast('Не получилось. Попробуйте ещё раз'); render(); }
+    if (g === 'bio' && !prefs.pinHash) { pinSheet('bio'); return; }
+    try { await applyGate(g); render(); toast(g === 'bio' ? 'Готово: Face ID и код' : g === 'none' ? 'Темп открывается сразу' : 'Вход только по паролю'); } catch (e) { toast('Не получилось. Попробуйте ещё раз'); render(); }
   },
+  addPin: () => pinSheet('keep'),
   checkUpdate: () => {
-    if (updateReady) { location.reload(); return; }
+    if (updateReady) { clearTimeout(timer); persist().then(() => location.reload()); return; }
     if (!swReg) { toast('Проверка доступна в установленном приложении'); return; }
     toast('Проверяем…'); swReg.update().catch(() => {});
     setTimeout(() => { if (!updateReady) toast('У вас последняя версия'); }, 2500);
@@ -2180,7 +2326,7 @@ const A = {
   addIncome: () => opSheet(null, { type: 'in' }), addExpense: () => opSheet(null, { type: 'out' }),
   quickAdd: b => {
     const p = P(), o = quickList(p)[Number(b.dataset.i)]; if (!o) return;
-    const rec = { id: uid(), type: o.last.type, amount: o.last.amount, title: o.title, cat: o.last.cat || '', date: todayISO(), note: '', unpaid: false, who: '' };
+    const rec = { id: uid(), type: o.last.type, amount: o.last.amount, title: o.title, cat: o.last.cat || '', date: todayISO(), note: '', unpaid: false, who: o.last.who || '', kg: o.last.kg || 0, pcs: o.last.pcs || 0 };
     p.ledger.push(rec); ui.month = rec.date.slice(0, 7); save(); buzz(10); render();
     toast('Добавлено: ' + o.title, () => { const i = p.ledger.findIndex(x => x.id === rec.id); if (i >= 0) p.ledger.splice(i, 1); save(); render(); });
   },
@@ -2209,7 +2355,8 @@ const A = {
   calcRecord: () => {
     const p = P(), r = calcTotals(); if (!r.any) return;
     const lines = p.items.filter(i => num(ui.qty[i.id]) > 0).map(i => i.name.toLowerCase() + ' ' + fmt(num(ui.qty[i.id])) + ' ' + i.unit);
-    opSheet(null, { type: 'in', amount: r.total, title: 'Продажа: ' + lines.join(', ').slice(0, 80), cat: 'Продажи', note: '', clearQty: true });
+    const sumU = re => p.items.filter(i => re.test(i.unit)).reduce((a, i) => a + num(ui.qty[i.id]), 0);
+    opSheet(null, { type: 'in', amount: r.total, title: 'Продажа: ' + lines.join(', ').slice(0, 80), cat: 'Продажи', note: '', clearQty: true, kg: sumU(/^кг$/), pcs: sumU(/^(шт|гол)/) });
   },
   editNote: b => noteSheet(b.dataset.id), addNote: () => noteSheet(null),
   notesView: () => { S.settings.notesView = S.settings.notesView === 'grid' ? 'list' : 'grid'; save(); render(); },
@@ -2262,7 +2409,7 @@ function doSwipe(row, dir) {
     const e = p.ledger.find(x => x.id === id); if (!e) return;
     if (dir === 'l') { removeWithUndo(p.ledger, id, 'Запись удалена'); return; }
     if (e.unpaid) { const undo = payDebt(e, 0); toast('Оплачено, записано в ' + (e.type === 'in' ? 'доход' : 'расход') + ' за сегодня', undo); return; }
-    const copy = Object.assign({}, e, { id: uid(), date: today, unpaid: false }); p.ledger.push(copy); ui.month = today.slice(0, 7); save();
+    const copy = Object.assign({}, e, { id: uid(), date: today, unpaid: false }); delete copy.full; delete copy.since; delete copy.due; p.ledger.push(copy); ui.month = today.slice(0, 7); save();
     toast('Копия добавлена на сегодня', () => { const i = p.ledger.findIndex(x => x.id === copy.id); if (i >= 0) p.ledger.splice(i, 1); save(); render(); });
   } else if (kind === 'note') {
     const n = p.notes.find(x => x.id === id); if (!n) return;
@@ -2558,7 +2705,7 @@ document.addEventListener('change', ev => {
     if (parts[0] === 'set') S.settings[parts[1]] = t.checked;
     else if (parts[0] === 'area') S.settings.areas[parts[1]] = t.checked;
     else if (p[parts[0]]) p[parts[0]][parts[1]] = t.checked;
-    save(); render();
+    clearTimeout(timer); persist(); render();
   } else if (t.id === 's-name') { const v = t.value.trim(); if (v) { P().name = v; save(); render(); } }
   else if (t.id === 's-goal') { P().goal = Math.max(0, num(t.value)); save(); render(); }
   else if (t.id === 's-pname' || t.id === 's-psym' || t.id === 's-pno' || t.id === 's-pmass') {
@@ -2570,6 +2717,7 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target && ev.target.id === 'f-new') { ev.preventDefault(); A.addFocus(); } });
 let hiddenAt = 0;
+window.addEventListener('pagehide', () => { if (S && !session.demo) { clearTimeout(timer); persist(); } });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); if (S && !session.demo) persist(); }
   else {
@@ -2599,11 +2747,11 @@ function wireInstall() {
   }));
 }
 /* ---------- обновления ---------- */
-const APP_VERSION = '0fec1ec2';
+const APP_VERSION = 'b1c1db2f';
 let swReg = null, updateReady = false;
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   const hadCtl = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl && !updateReady) { updateReady = true; toastBtn('Вышла новая версия Темпа', 'Обновить', () => location.reload(), 15000); if (S && ui.tab === 'settings') render(); } });
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl && !updateReady) { updateReady = true; toastBtn('Вышла новая версия Темпа', 'Обновить', () => { clearTimeout(timer); persist().then(() => location.reload()); }, 15000); if (S && ui.tab === 'settings') render(); } });
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => { /* офлайн-режим недоступен, приложение работает и так */ }); });
 }
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
