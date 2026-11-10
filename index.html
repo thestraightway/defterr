@@ -2146,7 +2146,7 @@ function vSettings(p) {
     '<div class="card stack"><h3 class="card-title" style="margin:0">Копии и обновления</h3><div class="bk-status' + (stale ? ' warn' : '') + '">' + bkLabel() + '</div>' +
     '<button class="btn primary" data-act="saveBackup">Сохранить копию</button><p class="muted small" style="margin:0">Откроется меню «Поделиться»: выберите «Сохранить в Файлы» или отправьте файл себе в Telegram. Копия зашифрована вашим паролем.</p>' +
     '<button class="btn" data-act="restoreFile">Восстановить из файла</button><button class="btn" data-act="snaps">Автокопии на этом телефоне</button>' +
-    '<div class="vrow"><span>Версия ' + esc(APP_VERSION.slice(0, 7)) + (updateReady ? ' · есть новая' : '') + '</span><button class="linkbtn" style="min-height:0;padding:0" data-act="checkUpdate">' + (updateReady ? 'Обновить' : 'Проверить обновления') + '</button></div></div>';
+    '<div class="vrow"><span>Версия от ' + verDate(APP_BUILT) + ' · ' + esc(APP_VERSION.slice(0, 7)) + (updateReady || remoteNewer ? ' · есть новая' : '') + '</span><button class="linkbtn" style="min-height:0;padding:0" data-act="checkUpdate">' + (updateReady ? 'Обновить' : 'Проверить обновления') + '</button></div></div>';
   return securityCards + (p.example ? '<div class="note-box">В проекте примерные данные. Посмотрите, как всё работает, а потом удалите проект или очистите записи.</div>' : '') +
     '<div class="card"><h3 class="card-title">Профиль</h3><div class="two-in"><label class="f"><span>Имя</span><input id="s-pname" autocomplete="off" maxlength="24" value="' + esc(pr.name) + '"></label><label class="f"><span>Символ</span><input id="s-psym" autocomplete="off" maxlength="2" value="' + esc(pr.sym) + '"></label><label class="f"><span>Номер</span><input id="s-pno" inputmode="numeric" maxlength="3" value="' + esc(pr.no) + '"></label></div><label class="f" style="margin:10px 0 0"><span>Атомная масса (подпись на плитке)</span><input id="s-pmass" autocomplete="off" maxlength="8" value="' + esc(pr.mass) + '"></label></div>' +
     '<div class="card"><h3 class="card-title">Оформление</h3><div class="seg" style="margin-bottom:14px">' + [['auto', 'Как в системе'], ['light', 'Светлая'], ['dark', 'Тёмная']].map(a => '<button data-act="theme" data-v="' + a[0] + '" aria-pressed="' + (prefs.theme === a[0]) + '">' + a[1] + '</button>').join('') + '</div><div class="pals">' + Object.keys(PAL).map(k => '<button class="pal" data-act="setAccent" data-v="' + k + '" style="--pc:' + (dark ? PAL[k].d[0] : PAL[k].l[0]) + '" aria-pressed="' + (prefs.accent === k) + '"><i></i>' + PAL[k].n + '</button>').join('') + '</div></div>' +
@@ -2471,12 +2471,7 @@ const A = {
   monthOpen: b => monthSheet(b.dataset.m),
   catFilter: b => { ui.lq = b.dataset.c; ui.lf = 'all'; render(); const l = $('#ledq'); if (l) l.scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' }); toast('Показаны записи: ' + b.dataset.c); },
   discDay: b => { ui.day = b.dataset.d; ui.tab = 'today'; render(); window.scrollTo(0, 0); },
-  checkUpdate: () => {
-    if (updateReady) { applyUpdate(); return; }
-    if (!swReg) { toast('Проверка доступна в установленном приложении'); return; }
-    toast('Проверяем…'); swReg.update().catch(() => {});
-    setTimeout(() => { if (!updateReady) toast('У вас последняя версия'); }, 2500);
-  },
+  checkUpdate: () => checkForUpdate(true),
   tab: b => { ui.tab = b.dataset.v; render(); window.scrollTo(0, 0); },
   goTab: b => { ui.tab = b.dataset.v; render(); window.scrollTo(0, 0); },
   pickDay: b => { ui.day = b.dataset.d; render(); },
@@ -2897,9 +2892,10 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target
 let hiddenAt = 0;
 window.addEventListener('pagehide', () => { if (S && !session.demo) { clearTimeout(timer); persist(); } });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { hiddenAt = Date.now(); if (S && !session.demo) persist(); if (updateReady && updateIdle()) applyUpdate(); }
+  if (document.hidden) { hiddenAt = Date.now(); if (S && !session.demo) persist(); if (updateReady && updateIdle()) applyUpdate(); else if (hardPending && updateIdle()) hardUpdate(); }
   else {
     if (updateReady && updateIdle() && !(S && S.settings.autolock > 0 && hiddenAt && Date.now() - hiddenAt > S.settings.autolock * 60000)) { applyUpdate(); return; }
+    if (navigator.onLine !== false && Date.now() - lastCheck > 20 * 60000) checkForUpdate(false);
     checkReminders();
     if (swReg && !updateReady && Date.now() - (window.__lastUpd || 0) > 60000) { window.__lastUpd = Date.now(); swReg.update().catch(() => {}); }
     if (S && !session.demo && !(devReady && prefs.gate === 'none') && S.settings.autolock > 0 && hiddenAt && Date.now() - hiddenAt > S.settings.autolock * 60000) lockNow();
@@ -2926,8 +2922,48 @@ function wireInstall() {
   }));
 }
 /* ---------- обновления ---------- */
-const APP_VERSION = '838bc4cb';
-let swReg = null, updateReady = false;
+const APP_VERSION = '442e80da', APP_BUILT = '2026-11-09T11:43';
+let swReg = null, updateReady = false, remoteNewer = '';
+const verDate = iso8 => { if (!iso8 || iso8.length < 10) return '—'; const d = parseISO(iso8.slice(0, 10)); return d.getDate() + ' ' + MONTHS_G[d.getMonth()]; };
+/* проверка версии в обход кэша: обновление находится, даже если служебный файл офлайна застрял */
+async function remoteVersion() {
+  try { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.open(k).then(c => c.delete('version.json', { ignoreSearch: true })))); } catch (e) { /* ignore */ }
+  const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) return null;
+  const o = await r.json(); return o && o.v ? o : null;
+}
+async function hardUpdate() {
+  try { lsSet('tempo.hard', JSON.stringify({ v: remoteNewer, t: Date.now() })); } catch (e) { /* ignore */ }
+  if (S && !session.demo && devReady && prefs.gate !== 'password') { try { sessionStorage.setItem('tempo.resume', JSON.stringify({ t: Date.now(), tab: ui.tab, day: ui.day, month: ui.month, lock: (S.settings.autolock || 0) * 60000 })); } catch (e) { /* ignore */ } }
+  clearTimeout(timer); if (S && !session.demo) await persist();
+  try { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())); } catch (e) { /* ignore */ }
+  try { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } catch (e) { /* ignore */ }
+  try { await fetch('index.html', { cache: 'reload' }); await fetch('./', { cache: 'reload' }); } catch (e) { /* ignore */ }
+  location.reload();
+}
+const waitUpdate = ms => new Promise(res => { const t0 = Date.now(); const tick = () => { if (updateReady) return res(true); if (Date.now() - t0 > ms) return res(false); setTimeout(tick, 250); }; tick(); });
+let checking = false, lastCheck = 0;
+async function checkForUpdate(manual) {
+  if (checking) { if (manual) toast('Проверяем…'); return; }
+  if (updateReady) { applyUpdate(); return; }
+  checking = true; lastCheck = Date.now();
+  if (manual) toast('Проверяем…');
+  try {
+    let rv = null; try { rv = await remoteVersion(); } catch (e) { rv = null; }
+    if (!rv) { if (manual) toast('Нет связи с сайтом. Проверьте интернет'); return; }
+    if (rv.v === APP_VERSION) { remoteNewer = ''; if (manual) toast('У вас последняя версия от ' + verDate(APP_BUILT)); return; }
+    remoteNewer = rv.v;
+    if (manual) toast('Нашлась версия от ' + verDate(rv.built) + '. Загружаем…');
+    if (swReg) { try { await swReg.update(); } catch (e) { /* ignore */ } }
+    if (await waitUpdate(manual ? 20000 : 45000)) { if (manual) applyUpdate(); return; }
+    // офлайн-кэш не обновился сам: переустанавливаем его начисто (данные не трогаются)
+    let h = null; try { h = JSON.parse(lsGet('tempo.hard') || 'null'); } catch (e) { h = null; }
+    const recent = h && h.v === rv.v && Date.now() - h.t < 30 * 60000;
+    if (manual) { hardUpdate(); return; }
+    if (!recent) { hardPending = true; if (document.hidden && updateIdle()) hardUpdate(); }
+  } finally { checking = false; if (S && ui.tab === 'settings') render(); }
+}
+let hardPending = false;
 function applyUpdate() {
   if (S && !session.demo && devReady && prefs.gate !== 'password') { try { sessionStorage.setItem('tempo.resume', JSON.stringify({ t: Date.now(), tab: ui.tab, day: ui.day, month: ui.month, lock: (S.settings.autolock || 0) * 60000 })); } catch (e) { /* ignore */ } }
   clearTimeout(timer); (S && !session.demo ? persist() : Promise.resolve()).then(() => location.reload());
@@ -2936,7 +2972,7 @@ const updateIdle = () => !cmp.el && !document.querySelector('.sheet-wrap');
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   const hadCtl = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadCtl && !updateReady) { updateReady = true; if (!S || document.hidden) { if (updateIdle()) applyUpdate(); return; } toastBtn('Вышла новая версия Темпа', 'Обновить', applyUpdate, 15000); if (S && ui.tab === 'settings') render(); } });
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => { /* офлайн-режим недоступен, приложение работает и так */ }); });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => { /* офлайн-режим недоступен, приложение работает и так */ }); setTimeout(() => { if (navigator.onLine !== false) checkForUpdate(false); }, 4000); });
 }
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
 
